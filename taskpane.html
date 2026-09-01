@@ -1,641 +1,390 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=Edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>構造図ジェネレーター for PowerPoint</title>
-  <!-- Office.js ライブラリ -->
-  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js" type="text/javascript"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>構造図ジェネレーター</title>
+  <!-- Office.js SDK -->
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 10px; font-size: 12px; }
-    .header { font-weight: bold; font-size: 14px; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #334155; color: #38bdf8; }
-    .section { margin-bottom: 10px; }
-    .label { font-weight: bold; color: #94a3b8; margin-bottom: 4px; display: block; font-size: 11px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-    .btn-theme { background: #1e293b; border: 1px solid #475569; color: #94a3b8; padding: 6px; border-radius: 4px; text-align: left; cursor: pointer; font-size: 10px; }
-    .btn-theme.active { border-color: #38bdf8; background: #0284c7; color: #fff; font-weight: bold; }
-    select, input[type="text"] { width: 100%; background: #1e293b; border: 1px solid #475569; color: #fff; padding: 6px; border-radius: 4px; font-size: 11px; margin-bottom: 4px; outline:none; }
-    
-    .card { background: #1e293b; border: 1px solid #334155; padding: 8px; border-radius: 4px; margin-bottom: 6px; }
-    .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; color: #94a3b8; font-size: 10px; }
-    
-    .color-ui { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; background: #0f172a; padding: 6px; border-radius: 4px; border: 1px solid #475569; }
-    .hue-btns { display: flex; gap: 4px; }
-    .btn-hue { flex: 1; border: 1px solid #475569; background: #1e293b; color: #cbd5e1; padding: 4px 0; border-radius: 3px; cursor: pointer; font-size: 9px; text-align: center; }
-    .btn-hue.active { border-color: #38bdf8; font-weight: bold; color: #fff; background: #0284c7; }
-    .slider-row { display: flex; align-items: center; gap: 8px; }
-    input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
-    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 12px; width: 12px; border-radius: 50%; background: #38bdf8; cursor: pointer; margin-top: -4px; }
-    input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #475569; border-radius: 2px; }
-
-    .preview-box { background: #fafafa; border-radius: 4px; padding: 4px; margin-bottom: 8px; min-height: 110px; display: flex; align-items: center; justify-content: center; overflow:hidden;}
-    .preview-box svg { width: 100%; height: auto; max-height: 140px; }
-    .btn-primary { width: 100%; background: #0284c7; border: none; color: #fff; font-weight: bold; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-top: 4px; }
-    .btn-primary:disabled { background: #475569; cursor: not-allowed; }
-    .btn-add { background: #0284c7; color: #fff; border: none; padding: 3px 8px; border-radius: 3px; cursor: pointer; font-size: 10px; }
-    .btn-del { background: #ef4444; color: #fff; border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-size: 10px; }
-    
-    .detail-box { background: #1e293b; padding: 6px; border-radius: 4px; border: 1px solid #334155; margin-bottom: 6px; }
-    .notice { font-size: 9px; color: #94a3b8; margin-top: 2px; }
-    #logArea { margin-top: 6px; padding: 6px; border-radius: 4px; font-size: 10px; background: #1e293b; border: 1px solid #334155; color: #cbd5e1; max-height: 70px; overflow-y: auto; word-break: break-all; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 16px; background: #f8fafc; color: #1e293b; font-size: 13px; }
+    h2 { font-size: 16px; font-weight: 700; margin-bottom: 12px; color: #0f172a; border-bottom: 2px solid #d24726; padding-bottom: 4px; }
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 12px; }
+    select, input, textarea { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; font-size: 13px; }
+    .item-list { margin-bottom: 12px; }
+    .item-row { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; background: #fff; padding: 6px; border-radius: 6px; border: 1px solid #e2e8f0; }
+    .item-row input[type="text"] { flex: 1; }
+    .item-row input[type="color"] { width: 32px; height: 32px; border: none; cursor: pointer; background: transparent; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 13px; }
+    .btn-primary { background: #d24726; color: #fff; margin-top: 10px; }
+    .btn-primary:hover { background: #b0361a; }
+    .btn-secondary { background: #e2e8f0; color: #334155; width: auto; padding: 4px 8px; font-size: 11px; margin-bottom: 8px; }
+    .btn-danger { background: #ef4444; color: #fff; width: 28px; height: 28px; padding: 0; border-radius: 4px; }
+    #log { margin-top: 12px; padding: 8px; border-radius: 6px; font-size: 11px; background: #e2e8f0; color: #334155; word-break: break-all; }
   </style>
 </head>
 <body>
 
-  <div class="header">構造図ジェネレーター for PPT</div>
+  <h2>構造図ジェネレーター</h2>
 
-  <div class="section">
-    <span class="label">プレビュー</span>
-    <div class="preview-box" id="previewBox"></div>
-  </div>
-
-  <div class="section">
-    <span class="label">1. セグメント・カラー</span>
-    <div class="grid">
-      <button id="btn-corporate" onclick="selectTheme('corporate')" class="btn-theme active">全社基本 (#da3f24)</button>
-      <button id="btn-pmo" onclick="selectTheme('pmo')" class="btn-theme">戦略PMO (#313C58)</button>
-      <button id="btn-fandom" onclick="selectTheme('fandom')" class="btn-theme">ファンダム (#C3446E)</button>
-      <button id="btn-sns" onclick="selectTheme('sns')" class="btn-theme">SNS統合 (#265A7A)</button>
-    </div>
-  </div>
-
-  <div class="section">
-    <span class="label">2. フレームワーク (全11種類)</span>
-    <select id="typeSelect" onchange="changeType(this.value)">
-      <optgroup label="プロセス・段階">
-        <option value="funnel">1. パーチェスファネル（台形重ね）</option>
-        <option value="chevron">2. シェブロン（横ステップ）</option>
-        <option value="process_arrow">3. 矢印付きプロセス</option>
-        <option value="standalone_arrow">4. 単体カスタム矢印</option>
-        <option value="pyramid">5. ピラミッド（三角形重ね）</option>
-      </optgroup>
-      <optgroup label="分析・分類">
-        <option value="matrix">6. 2x2 マトリクス</option>
-        <option value="venn">7. 3C / 2C ベン図</option>
-        <option value="comparison">8. カラム比較</option>
-      </optgroup>
-      <optgroup label="関係性・流れ">
-        <option value="cycle">9. 循環 / ループ（PDCA）</option>
-        <option value="onion">10. 同心円（オニオン構造）</option>
-        <option value="timeline">11. タイムライン</option>
-      </optgroup>
+  <div class="form-group">
+    <label>図形タイプ</label>
+    <select id="typeSelect" onchange="onTypeChange(this.value)">
+      <option value="funnel">1. パーチェスファネル</option>
+      <option value="chevron">2. シェブロン（横ステップ）</option>
+      <option value="process_arrow">3. プロセス（角丸＋矢印）</option>
+      <option value="standalone_arrow">4. 単体矢印（直線/曲線/ブロック）</option>
+      <option value="pyramid">5. ピラミッド</option>
+      <option value="matrix">6. 2x2 マトリクス</option>
+      <option value="venn">7. ベン図（2C / 3C）</option>
+      <option value="comparison">8. カラム比較</option>
+      <option value="cycle">9. 循環ループ</option>
+      <option value="onion">10. 同心円（オニオン）</option>
+      <option value="timeline">11. タイムライン</option>
     </select>
   </div>
 
-  <div class="section" id="detailSettings" style="display:none;"></div>
-
-  <div class="section">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-      <span class="label" style="margin:0;">3. テキスト＆カラー設定</span>
-      <button onclick="addItem()" class="btn-add">＋追加</button>
-    </div>
-    <div id="itemsContainer"></div>
+  <div id="arrowSubOptions" class="form-group" style="display:none;">
+    <label>矢印の形状</label>
+    <select id="arrowTypeSelect" onchange="state.arrowType=this.value;">
+      <option value="block">ブロック矢印</option>
+      <option value="curved_up">曲線矢印（右上り）</option>
+      <option value="line">直線矢印</option>
+    </select>
   </div>
 
-  <button id="btnInsert" onclick="insertToSlide()" class="btn-primary">PowerPointに挿入</button>
-  <div class="notice">※ 挿入した図形やテキストはスライド上で自由に編集可能です。</div>
-  
-  <div class="section" style="margin-top:8px;">
-    <span class="label">ステータス・ログ</span>
-    <div id="logArea">初期化中...</div>
+  <div class="form-group">
+    <label>要素一覧</label>
+    <button class="btn btn-secondary" onclick="addItem()">＋ 要素を追加</button>
+    <div id="itemList" class="item-list"></div>
   </div>
+
+  <button id="btnInsert" class="btn btn-primary" onclick="insertToSlide()">PowerPointに挿入</button>
+  <div id="log">準備完了</div>
 
   <script>
-    // Office.js 初期化
-    Office.onReady(function(info) {
-      if (info.host === Office.HostType.PowerPoint) {
-        log('PowerPointアドイン準備完了');
-        renderDetailSettings();
-        updateAll();
-      } else {
-        log('ブラウザプレビュー表示中（PowerPoint外）');
-        renderDetailSettings();
-        updateAll();
-      }
-    });
-
-    function log(msg, isError) {
-      var el = document.getElementById('logArea');
-      if (el) {
-        el.innerHTML = '<span style="color:' + (isError ? '#fca5a5' : '#86efac') + ';">[' + (isError ? 'エラー' : '情報') + '] ' + msg + '</span>';
-      }
-    }
-
+    // State 管理
     var state = {
-      theme: 'corporate',
       type: 'funnel',
       arrowType: 'block',
-      arrowWeight: 3,
+      arrowWeight: 2,
+      colors: ['#0284c7', '#0d9488', '#16a34a', '#ca8a04', '#dc2626'],
       items: [
-        { title: '認知', desc: 'マスメディア・SNS', hue: 'gray', shade: 4 },
-        { title: '興味・関心', desc: 'オウンドメディア訪問', hue: 'gray', shade: 4 },
-        { title: '比較・検討', desc: '資料請求・セミナー', hue: 'main', shade: 1 },
-        { title: '購買', desc: '新規契約・購買層', hue: 'accent', shade: 0 }
+        { title: '認知', desc: 'ブランドの認知拡大' },
+        { title: '興味', desc: '製品への関心喚起' },
+        { title: '検討', desc: '他社比較と検討' },
+        { title: '購入', desc: '最終コンバージョン' }
       ]
     };
 
-    var palettes = {
-      corporate: { main: '#da3f24', accent: '#ff5d40' },
-      pmo: { main: '#313C58', accent: '#da3f24' },
-      fandom: { main: '#C3446E', accent: '#e4007f' },
-      sns: { main: '#265A7A', accent: '#da3f24' }
-    };
+    Office.onReady(function(info) {
+      log('Office.js 準備完了 (' + info.host + ')');
+      renderItems();
+    });
 
-    function blendWithWhite(hex, percent) {
-      var r = parseInt(hex.substring(1,3), 16), g = parseInt(hex.substring(3,5), 16), b = parseInt(hex.substring(5,7), 16);
-      r = Math.round(r + (255 - r) * percent);
-      g = Math.round(g + (255 - g) * percent);
-      b = Math.round(b + (255 - b) * percent);
-      return '#' + [r,g,b].map(function(x){ return x.toString(16).padStart(2,'0') }).join('');
+    function log(msg, isError) {
+      var el = document.getElementById('log');
+      el.textContent = msg;
+      el.style.color = isError ? '#dc2626' : '#334155';
     }
 
-    function getItemHex(item) {
-      var p = palettes[state.theme];
-      var baseHex = '#6F6F6F';
-      if (item.hue === 'main') baseHex = p.main;
-      if (item.hue === 'accent') baseHex = p.accent;
-      var steps = [0, 0.2, 0.45, 0.7, 0.92]; 
-      return blendWithWhite(baseHex, steps[item.shade]);
+    function getItemHex(item, index) {
+      return item.color || state.colors[index % state.colors.length];
     }
 
     function getTextColor(hex) {
-      var r = parseInt(hex.substring(1,3), 16), g = parseInt(hex.substring(3,5), 16), b = parseInt(hex.substring(5,7), 16);
-      var yiq = (r * 299 + g * 587 + b * 114) / 1000;
-      return (yiq >= 160) ? '#070322' : '#ffffff';
+      if (!hex) return '#FFFFFF';
+      var c = hex.replace('#', '');
+      var r = parseInt(c.substr(0, 2), 16);
+      var g = parseInt(c.substr(2, 2), 16);
+      var b = parseInt(c.substr(4, 2), 16);
+      var brightness = (r * 299 + g * 587 + b * 114) / 1000;
+      return brightness > 150 ? '#000000' : '#FFFFFF';
     }
 
-    function escapeHtml(str) {
-      return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
-
-    function selectTheme(name) {
-      state.theme = name;
-      ['corporate', 'pmo', 'fandom', 'sns'].forEach(function(t) {
-        var btn = document.getElementById('btn-' + t);
-        if (btn) btn.classList.toggle('active', t === name);
-      });
-      updateAll();
-    }
-
-    function changeType(val) {
+    function onTypeChange(val) {
       state.type = val;
-      renderDetailSettings();
-      updateAll();
+      document.getElementById('arrowSubOptions').style.display = (val === 'standalone_arrow') ? 'block' : 'none';
     }
 
-    function updateArrowType(val) {
-      state.arrowType = val;
-      updatePreview();
-    }
-
-    function updateArrowWeight(val) {
-      state.arrowWeight = parseInt(val, 10);
-      updatePreview();
-    }
-
-    function renderDetailSettings() {
-      var sec = document.getElementById('detailSettings');
-      var html = '';
-      if (state.type === 'standalone_arrow') {
-        html += '<div class="detail-box"><span class="label">▶ 矢印の種類</span>' +
-                '<select onchange="updateArrowType(this.value)">' +
-                '<option value="block">ブロック矢印</option>' +
-                '<option value="line">直線矢印（線）</option>' +
-                '<option value="curved_up">曲線矢印（右上り）</option></select>' +
-                '<span class="label" style="margin-top:6px;">▶ 矢印の太さ</span>' +
-                '<div class="slider-row"><span style="font-size:10px;color:#cbd5e1;">細</span>' +
-                '<input type="range" min="1" max="5" value="' + state.arrowWeight + '" oninput="updateArrowWeight(this.value)">' +
-                '<span style="font-size:10px;color:#cbd5e1;">太</span></div>' +
-                '</div>';
-        state.arrowType = 'block';
-      }
-      sec.innerHTML = html;
-      sec.style.display = html ? 'block' : 'none';
+    function renderItems() {
+      var container = document.getElementById('itemList');
+      container.innerHTML = '';
+      state.items.forEach(function(item, idx) {
+        var row = document.createElement('div');
+        row.className = 'item-row';
+        row.innerHTML = 
+          '<input type="color" value="' + getItemHex(item, idx) + '" onchange="state.items[' + idx + '].color=this.value">' +
+          '<input type="text" placeholder="タイトル" value="' + (item.title || '') + '" oninput="state.items[' + idx + '].title=this.value">' +
+          '<input type="text" placeholder="説明 (任意)" value="' + (item.desc || '') + '" oninput="state.items[' + idx + '].desc=this.value">' +
+          '<button class="btn btn-danger" onclick="removeItem(' + idx + ')">×</button>';
+        container.appendChild(row);
+      });
     }
 
     function addItem() {
-      state.items.push({ title: '新規項目', desc: '説明テキスト', hue: 'gray', shade: 4 });
-      updateAll();
+      state.items.push({ title: '新規項目', desc: '' });
+      renderItems();
     }
 
     function removeItem(idx) {
-      if (state.items.length <= 1) { log('最低1つ必要です', true); return; }
-      state.items.splice(idx, 1);
-      updateAll();
-    }
-
-    function updateTitle(idx, val) { state.items[idx].title = val; updatePreview(); }
-    function updateDesc(idx, val) { state.items[idx].desc = val; updatePreview(); }
-    function setHue(idx, hueVal) { state.items[idx].hue = hueVal; renderInputs(); updatePreview(); }
-    function setShade(idx, shadeVal) { state.items[idx].shade = parseInt(shadeVal, 10); updatePreview(); }
-
-    function renderInputs() {
-      var container = document.getElementById('itemsContainer');
-      var html = '';
-      state.items.forEach(function(item, index) {
-        var hue = item.hue;
-        html += '<div class="card">' +
-          '<div class="card-head"><span>#' + (index + 1) + '</span>' +
-          '<button class="btn-del" onclick="removeItem(' + index + ')">削除</button></div>' +
-          '<div class="color-ui">' +
-            '<div class="hue-btns">' +
-              '<button class="btn-hue ' + (hue==='main'?'active':'') + '" onclick="setHue(' + index + ',\'main\')">メイン</button>' +
-              '<button class="btn-hue ' + (hue==='accent'?'active':'') + '" onclick="setHue(' + index + ',\'accent\')">アクセント</button>' +
-              '<button class="btn-hue ' + (hue==='gray'?'active':'') + '" onclick="setHue(' + index + ',\'gray\')">無彩色</button>' +
-            '</div>' +
-            '<div class="slider-row"><span style="font-size:10px;color:#cbd5e1;">濃</span>' +
-              '<input type="range" min="0" max="4" value="' + item.shade + '" oninput="setShade(' + index + ', this.value)">' +
-            '<span style="font-size:10px;color:#cbd5e1;">淡</span></div>' +
-          '</div>' +
-          '<input type="text" value="' + escapeHtml(item.title) + '" oninput="updateTitle(' + index + ', this.value)" placeholder="タイトル">' +
-          '<input type="text" value="' + escapeHtml(item.desc) + '" oninput="updateDesc(' + index + ', this.value)" placeholder="説明文">' +
-        '</div>';
-      });
-      container.innerHTML = html;
-    }
-
-    function generateSVG() {
-      var count = state.items.length, w = 1000, h = 500, inner = '';
-
-      if (state.type === 'funnel') {
-        var topW = 600, botW = 200, layerH = h / count;
-        state.items.forEach(function(item, i) {
-          var y1 = i * layerH, y2 = (i + 1) * layerH;
-          var w1 = topW - (topW - botW) * (i / count);
-          var w2 = topW - (topW - botW) * ((i + 1) / count);
-          var x1 = (w - w1)/2, x2 = x1 + w1, x3 = (w - w2)/2, x4 = x3 + w2;
-          var hex = getItemHex(item), txtCol = getTextColor(hex);
-          inner += '<polygon points="' + x1 + ',' + (y1+2) + ' ' + x2 + ',' + (y1+2) + ' ' + x4 + ',' + (y2-2) + ' ' + x3 + ',' + (y2-2) + '" fill="' + hex + '" stroke="#fff" stroke-width="2"/>';
-          inner += '<text x="' + ((x1+x2)/2) + '" y="' + ((y1+y2)/2+6) + '" fill="'+txtCol+'" font-size="18" font-weight="bold" text-anchor="middle">' + escapeHtml(item.title) + '</text>';
-        });
-
-      } else if (state.type === 'chevron') {
-        var gap = 16;
-        var bw = (w - 40 - (count-1)*gap) / count;
-        state.items.forEach(function(item, i) {
-          var hex = getItemHex(item), txtCol = getTextColor(hex), x = 20 + i * (bw + gap);
-          inner += '<rect x="' + x + '" y="100" width="' + bw + '" height="300" fill="' + hex + '" rx="6"/>';
-          inner += '<text x="' + (x + bw/2) + '" y="240" fill="' + txtCol + '" font-size="16" font-weight="bold" text-anchor="middle">' + escapeHtml(item.title) + '</text>';
-        });
-
-      } else if (state.type === 'process_arrow') {
-        var gap = 20, arrowW = 40, boxW = (w - (count-1)*(gap*2+arrowW) - 40) / count;
-        state.items.forEach(function(item, i) {
-          var x = 20 + i * (boxW + gap*2 + arrowW), hex = getItemHex(item), txtCol = getTextColor(hex);
-          inner += '<rect x="' + x + '" y="200" width="' + boxW + '" height="100" fill="' + hex + '" rx="8"/>';
-          inner += '<text x="' + (x + boxW/2) + '" y="255" fill="' + txtCol + '" font-size="16" font-weight="bold" text-anchor="middle">' + escapeHtml(item.title) + '</text>';
-          if (i < count - 1) {
-            inner += '<polygon points="'+(x+boxW+gap)+',235 '+(x+boxW+gap+arrowW)+',250 '+(x+boxW+gap)+',265" fill="#6f6f6f"/>';
-          }
-        });
-
-      } else if (state.type === 'standalone_arrow') {
-        var at = state.arrowType || 'block';
-        var strokeW = state.arrowWeight * 3 + 2;
-        state.items.forEach(function(item, i) {
-          var y = (h - count*120)/2 + i * 120, hex = getItemHex(item), txtCol = getTextColor(hex);
-          if (at === 'line') {
-            inner += '<line x1="200" y1="'+(y+30)+'" x2="800" y2="'+(y+30)+'" stroke="'+hex+'" stroke-width="'+strokeW+'"/>';
-            inner += '<polygon points="800,'+(y+30-strokeW*1.5)+' '+(800+strokeW*2)+','+(y+30)+' 800,'+(y+30+strokeW*1.5)+'" fill="'+hex+'"/>';
-            txtCol = '#070322';
-          } else if (at === 'curved_up') {
-            inner += '<path d="M 200 '+(y+100)+' Q 500 '+(y+100)+' 800 '+(y+20)+'" fill="none" stroke="'+hex+'" stroke-width="'+strokeW+'"/>';
-            inner += '<polygon points="790,'+(y+10)+' '+(810+strokeW)+','+(y+15)+' 800,'+(y+30)+'" fill="'+hex+'"/>';
-            txtCol = '#070322'; 
-          } else {
-            var bh = state.arrowWeight * 8 + 20;
-            inner += '<polygon points="200,'+(y+30-bh/2)+' 760,'+(y+30-bh/2)+' 760,'+(y+30-bh/2-10)+' 820,'+(y+30)+' 760,'+(y+30+bh/2+10)+' 760,'+(y+30+bh/2)+' 200,'+(y+30+bh/2)+'" fill="'+hex+'"/>';
-          }
-          inner += '<text x="500" y="' + (y + 36) + '" fill="' + txtCol + '" font-size="18" font-weight="bold" text-anchor="middle">' + escapeHtml(item.title) + '</text>';
-        });
-
-      } else if (state.type === 'pyramid') {
-        var botW = 600, layerH = h / count;
-        for (var i = count - 1; i >= 0; i--) {
-          var item = state.items[i];
-          var currentH = layerH * (i + 1);
-          var currentW = botW * ((i + 1) / count);
-          var lx = (w - currentW) / 2;
-          var hex = getItemHex(item);
-          inner += '<polygon points="' + (w/2) + ',0 ' + (lx+currentW) + ',' + currentH + ' ' + lx + ',' + currentH + '" fill="' + hex + '" stroke="#fff" stroke-width="2"/>';
-        }
-        for (var i = count - 1; i >= 0; i--) {
-           var item = state.items[i];
-           var currentH = layerH * (i + 1);
-           var textY = currentH - (layerH / 2) + 6;
-           var hex = getItemHex(item), txtCol = getTextColor(hex);
-           inner += '<text x="' + (w/2) + '" y="' + textY + '" fill="'+txtCol+'" font-size="18" font-weight="bold" text-anchor="middle">' + escapeHtml(item.title) + '</text>';
-        }
-
-      } else if (state.type === 'matrix') {
-        var gap = 15;
-        var bw = 380, bh = 180, pos = [ {x: 500+gap, y: 250-bh-gap}, {x: 500-bw-gap, y: 250-bh-gap}, {x: 500-bw-gap, y: 250+gap}, {x: 500+gap, y: 250+gap} ];
-        state.items.slice(0, 4).forEach(function(item, i) {
-          var hex = getItemHex(item), txtCol = getTextColor(hex), p = pos[i];
-          inner += '<rect x="' + p.x + '" y="' + p.y + '" width="' + bw + '" height="' + bh + '" fill="' + hex + '" rx="8"/>';
-          inner += '<text x="' + (p.x + 20) + '" y="' + (p.y + 40) + '" fill="' + txtCol + '" font-size="18" font-weight="bold">' + escapeHtml(item.title) + '</text>';
-          inner += '<text x="' + (p.x + 20) + '" y="' + (p.y + 80) + '" fill="' + txtCol + '" font-size="14">' + escapeHtml(item.desc) + '</text>';
-        });
-
-      } else if (state.type === 'cycle') {
-        var cx = w / 2, cy = h / 2, r = 140;
-        inner += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#6F6F6F" stroke-width="6"/>';
-        state.items.forEach(function(item, i) {
-          var angle = (i * 2 * Math.PI / count) - (Math.PI / 2), x = cx + r * Math.cos(angle), y = cy + r * Math.sin(angle);
-          var hex = getItemHex(item), txtCol = getTextColor(hex);
-          inner += '<circle cx="' + x + '" cy="' + y + '" r="45" fill="' + hex + '" stroke="#fff" stroke-width="2"/>';
-          inner += '<text x="' + x + '" y="' + (y + 6) + '" fill="' + txtCol + '" font-size="14" font-weight="bold" text-anchor="middle">' + escapeHtml(item.title) + '</text>';
-        });
-
-      } else if (state.type === 'onion') {
-        var cx = w / 2 - 150, cy = h / 2, maxR = 200, stepR = maxR / count;
-        for (var i = count - 1; i >= 0; i--) {
-          var cr = stepR * (i + 1), hex = getItemHex(state.items[i]);
-          inner += '<circle cx="' + cx + '" cy="' + cy + '" r="' + cr + '" fill="' + hex + '" stroke="#fff" stroke-width="2"/>';
-        }
-        state.items.forEach(function(item, i) {
-          var ty = cy - maxR + (i * (maxR * 2 / count)) + 20, tx = cx + maxR + 30;
-          inner += '<text x="' + tx + '" y="' + ty + '" fill="#070322" font-size="16" font-weight="bold">' + escapeHtml(item.title) + '</text>';
-        });
-
-      } else if (state.type === 'venn') {
-        var cy = h / 2, r = 120, ac = Math.min(count, 3);
-        var centers = ac >= 3 ? [{x: w/2 - 60, y: cy - 40}, {x: w/2 + 60, y: cy - 40}, {x: w/2, y: cy + 60}] : [{x: w/2 - 70, y: cy}, {x: w/2 + 70, y: cy}];
-        for(var i=0; i<ac; i++) {
-          var hex = getItemHex(state.items[i]), txtCol = getTextColor(hex), cx = centers[i].x, cyc = centers[i].y;
-          inner += '<circle cx="' + cx + '" cy="' + cyc + '" r="' + r + '" fill="' + hex + '" opacity="0.85" stroke="#fff" stroke-width="2"/>';
-          var ny = (ac>=3 && i===2) ? cyc + 30 : cyc - 40;
-          var nx = (ac>=3 && i===0) ? cx - 20 : (ac>=3 && i===1) ? cx + 20 : cx;
-          inner += '<text x="' + nx + '" y="' + ny + '" fill="' + txtCol + '" font-size="16" font-weight="bold" text-anchor="middle">' + escapeHtml(state.items[i].title) + '</text>';
-        }
-        inner += '<text x="'+(w/2)+'" y="'+(cy-10)+'" fill="#070322" font-size="14" font-weight="bold" text-anchor="middle">[重なり]</text>';
-
-      } else if (state.type === 'timeline') {
-        inner += '<line x1="100" y1="250" x2="900" y2="250" stroke="#6F6F6F" stroke-width="6"/>';
-        var stepW = 800 / Math.max(1, count - 1);
-        state.items.forEach(function(item, i) {
-          var x = 100 + i * stepW, hex = getItemHex(item), txtCol = getTextColor(hex), cy = (i % 2 === 0) ? 140 : 310;
-          inner += '<circle cx="' + x + '" cy="250" r="14" fill="' + hex + '" stroke="#fff" stroke-width="3"/>';
-          inner += '<rect x="' + (x - 70) + '" y="' + cy + '" width="140" height="70" fill="' + hex + '" rx="8"/>';
-          inner += '<text x="' + x + '" y="' + (cy + 35) + '" fill="' + txtCol + '" font-size="13" font-weight="bold" text-anchor="middle">' + escapeHtml(item.title) + '</text>';
-        });
-
-      } else if (state.type === 'comparison') {
-        var colW = 220, gap=20, totalW = count * colW + (count-1)*gap, startX = (w - totalW) / 2;
-        state.items.forEach(function(item, i) {
-          var x = startX + i * (colW + gap), hex = getItemHex(item), txtCol = getTextColor(hex);
-          inner += '<rect x="' + x + '" y="100" width="' + colW + '" height="250" fill="#fafafa" stroke="'+hex+'" stroke-width="2"/>';
-          inner += '<rect x="' + x + '" y="100" width="' + colW + '" height="40" fill="' + hex + '"/>';
-          inner += '<text x="' + (x + colW/2) + '" y="125" fill="' + txtCol + '" font-size="16" font-weight="bold" text-anchor="middle">' + escapeHtml(item.title) + '</text>';
-          inner += '<text x="' + (x + 15) + '" y="170" fill="#070322" font-size="13">' + escapeHtml(item.desc) + '</text>';
-        });
+      if (state.items.length > 1) {
+        state.items.splice(idx, 1);
+        renderItems();
       }
-
-      return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + w + ' ' + h + '">' + inner + '</svg>';
     }
 
-    function updatePreview() { document.getElementById('previewBox').innerHTML = generateSVG(); }
-    function updateAll() { renderInputs(); updatePreview(); }
+    // 1. PowerPoint APIの形状定数を安全に取得するヘルパー
+    function getShapeType(key) {
+      if (typeof PowerPoint !== 'undefined' && PowerPoint.GeometricShapeType) {
+        var GST = PowerPoint.GeometricShapeType;
+        var map = {
+          'rectangle': GST.rectangle,
+          'roundRectangle': GST.roundRectangle,
+          'trapezoid': GST.trapezoid,
+          'chevron': GST.chevron,
+          'rightArrow': GST.rightArrow,
+          'curvedUpArrow': GST.bentUpArrow || GST.curvedUpArrow,
+          'triangle': GST.triangle,
+          'ellipse': GST.ellipse
+        };
+        if (map[key]) return map[key];
+      }
+      var fallbackMap = {
+        'rectangle': 'Rectangle',
+        'roundRectangle': 'RoundRectangle',
+        'trapezoid': 'Trapezoid',
+        'chevron': 'Chevron',
+        'rightArrow': 'RightArrow',
+        'curvedUpArrow': 'BentUpArrow',
+        'triangle': 'Triangle',
+        'ellipse': 'Ellipse'
+      };
+      return fallbackMap[key] || 'Rectangle';
+    }
 
-// 1. 安全に図形種別を取得するヘルパー
-function getShapeType(key) {
-  if (typeof PowerPoint === 'undefined' || !PowerPoint.GeometricShapeType) return 'Rectangle';
-  var T = PowerPoint.GeometricShapeType;
-  var map = {
-    'rectangle': T.rectangle || 'Rectangle',
-    'trapezoid': T.trapezoid || 'Trapezoid',
-    'chevron': T.chevron || 'Chevron',
-    'rightArrow': T.rightArrow || 'RightArrow',
-    'curvedUpArrow': T.curvedUpArrow || T.bentUpArrow || 'CurvedUpArrow',
-    'triangle': T.triangle || 'Triangle',
-    'ellipse': T.ellipse || T.oval || 'Ellipse',
-    'roundRectangle': T.roundRectangle || 'RoundRectangle'
-  };
-  return map[key] || T.rectangle || 'Rectangle';
-}
+    // 2. テキスト設定ヘルパー
+    function addText(shape, text, color, size) {
+      if (shape && shape.textFrame && shape.textFrame.textRange) {
+        shape.textFrame.textRange.text = text || '';
+        if (color) shape.textFrame.textRange.font.color = color;
+        shape.textFrame.textRange.font.bold = true;
+        if (size) shape.textFrame.textRange.font.size = size;
+      }
+    }
 
-// 2. テキストを設定するシンプルで軽量なヘルパー（不要な揃え処理を排除）
-function addText(shape, text, color, size) {
-  if (shape && shape.textFrame && shape.textFrame.textRange) {
-    shape.textFrame.textRange.text = text;
-    shape.textFrame.textRange.font.color = color;
-    shape.textFrame.textRange.font.bold = true;
-    if (size) shape.textFrame.textRange.font.size = size;
-  }
-}
+    // 3. スライド挿入メイン処理
+    async function insertToSlide() {
+      var btn = document.getElementById('btnInsert');
+      btn.disabled = true;
+      btn.textContent = '挿入中...';
+      log('PowerPointへ編集可能な図形を挿入中...');
 
-// 3. PowerPointスライドへの挿入メイン処理（無駄を省いたクリーン版）
-async function insertToSlide() {
-  var btn = document.getElementById('btnInsert');
-  btn.disabled = true;
-  btn.textContent = '挿入中...';
-  log('PowerPointへ編集可能な図形を挿入中...');
+      try {
+        if (typeof PowerPoint !== 'undefined' && PowerPoint.run) {
+          await PowerPoint.run(async (context) => {
+            const slide = context.presentation.getSelectedSlides().getItemAt(0);
+            const shapes = slide.shapes;
 
-  try {
-    if (typeof PowerPoint !== 'undefined' && PowerPoint.run) {
-      await PowerPoint.run(async (context) => {
-        const slide = context.presentation.getSelectedSlides().getItemAt(0);
-        const shapes = slide.shapes;
+            var count = state.items.length;
+            var startLeft = 80, startTop = 120;
+            var totalWidth = 600, totalHeight = 300;
 
-        var count = state.items.length;
-        var startLeft = 80, startTop = 120;
-        var totalWidth = 600, totalHeight = 300;
+            // 1. パーチェスファネル
+            if (state.type === 'funnel') {
+              var layerH = totalHeight / count, topW = 540, botW = 150;
+              for (var i = 0; i < count; i++) {
+                var item = state.items[i], hex = getItemHex(item, i);
+                var curW = topW - (topW - botW) * (i / (count > 1 ? count - 1 : 1));
+                var curLeft = startLeft + (totalWidth - curW) / 2;
 
-        // 1. パーチェスファネル
-        if (state.type === 'funnel') {
-          var layerH = totalHeight / count, topW = 540, botW = 150;
-          for (var i = 0; i < count; i++) {
-            var item = state.items[i], hex = getItemHex(item);
-            var curW = topW - (topW - botW) * (i / (count > 1 ? count - 1 : 1));
-            var curLeft = startLeft + (totalWidth - curW) / 2;
+                var shape = shapes.addGeometricShape(getShapeType('trapezoid'), { left: curLeft, top: startTop + i * layerH, width: curW, height: layerH - 3 });
+                shape.fill.setSolidColor(hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 1.5;
+                shape.rotation = 180; // 逆台形化
 
-            var shape = shapes.addGeometricShape(getShapeType('trapezoid'), { left: curLeft, top: startTop + i * layerH, width: curW, height: layerH - 3 });
-            shape.fill.setSolidColor(hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 1.5;
-            shape.rotation = 180; // 逆台形化（テキストが逆さまになるため別枠を使用）
+                var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: curLeft, top: startTop + i * layerH, width: curW, height: layerH - 3 });
+                txtBox.fill.clear(); txtBox.lineFormat.visible = false;
+                addText(txtBox, item.title + (item.desc ? "\n" + item.desc : ""), getTextColor(hex), 13);
+              }
 
-            var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: curLeft, top: startTop + i * layerH, width: curW, height: layerH - 3 });
-            txtBox.fill.clear(); txtBox.lineFormat.visible = false;
-            addText(txtBox, item.title + (item.desc ? "\n" + item.desc : ""), getTextColor(hex), 13);
-          }
+            // 2. シェブロン
+            } else if (state.type === 'chevron') {
+              var gap = 10, boxW = (totalWidth - (count - 1) * gap) / count;
+              for (var i = 0; i < count; i++) {
+                var item = state.items[i], hex = getItemHex(item, i);
+                var shape = shapes.addGeometricShape(getShapeType('chevron'), { left: startLeft + i * (boxW + gap), top: startTop + 40, width: boxW, height: 180 });
+                shape.fill.setSolidColor(hex); shape.lineFormat.visible = false;
+                addText(shape, item.title + (item.desc ? "\n" + item.desc : ""), getTextColor(hex), 13);
+              }
 
-        // 2. シェブロン
-        } else if (state.type === 'chevron') {
-          var gap = 10, boxW = (totalWidth - (count - 1) * gap) / count;
-          for (var i = 0; i < count; i++) {
-            var item = state.items[i], hex = getItemHex(item);
-            var shape = shapes.addGeometricShape(getShapeType('chevron'), { left: startLeft + i * (boxW + gap), top: startTop + 40, width: boxW, height: 180 });
-            shape.fill.setSolidColor(hex); shape.lineFormat.visible = false;
-            addText(shape, item.title + (item.desc ? "\n" + item.desc : ""), getTextColor(hex), 13);
-          }
+            // 3. プロセス（角丸＋矢印）
+            } else if (state.type === 'process_arrow') {
+              var gap = 10, arrowW = 20, boxW = (totalWidth - (count - 1) * (gap * 2 + arrowW)) / count;
+              for (var i = 0; i < count; i++) {
+                var item = state.items[i], hex = getItemHex(item, i), curLeft = startLeft + i * (boxW + gap * 2 + arrowW);
+                var shape = shapes.addGeometricShape(getShapeType('roundRectangle'), { left: curLeft, top: startTop + 60, width: boxW, height: 120 });
+                shape.fill.setSolidColor(hex); shape.lineFormat.visible = false;
+                addText(shape, item.title + (item.desc ? "\n" + item.desc : ""), getTextColor(hex), 13);
 
-        // 3. プロセス
-        } else if (state.type === 'process_arrow') {
-          var gap = 10, arrowW = 20, boxW = (totalWidth - (count - 1) * (gap * 2 + arrowW)) / count;
-          for (var i = 0; i < count; i++) {
-            var item = state.items[i], hex = getItemHex(item), curLeft = startLeft + i * (boxW + gap * 2 + arrowW);
-            var shape = shapes.addGeometricShape(getShapeType('rectangle'), { left: curLeft, top: startTop + 60, width: boxW, height: 120 });
-            shape.fill.setSolidColor(hex); shape.lineFormat.visible = false;
-            addText(shape, item.title + (item.desc ? "\n" + item.desc : ""), getTextColor(hex), 13);
+                if (i < count - 1) {
+                  var arrow = shapes.addGeometricShape(getShapeType('rightArrow'), { left: curLeft + boxW + gap, top: startTop + 105, width: arrowW, height: 30 });
+                  arrow.fill.setSolidColor("#6F6F6F"); arrow.lineFormat.visible = false;
+                }
+              }
 
-            if (i < count - 1) {
-              var arrow = shapes.addGeometricShape(getShapeType('rightArrow'), { left: curLeft + boxW + gap, top: startTop + 105, width: arrowW, height: 30 });
-              arrow.fill.setSolidColor("#6F6F6F"); arrow.lineFormat.visible = false;
+            // 4. 単体カスタム矢印
+            } else if (state.type === 'standalone_arrow') {
+              var gap = 15, layerH = (totalHeight - (count - 1) * gap) / count;
+              var at = state.arrowType || 'block';
+              for (var i = 0; i < count; i++) {
+                var item = state.items[i], hex = getItemHex(item, i);
+                var sType = getShapeType('rightArrow'), w = totalWidth, h = layerH, t = startTop + i * (layerH + gap);
+
+                if (at === 'line') {
+                  h = Math.max(8, state.arrowWeight * 4); t = t + (layerH - h) / 2;
+                } else if (at === 'curved_up') {
+                  sType = getShapeType('curvedUpArrow');
+                }
+
+                var shape = shapes.addGeometricShape(sType, { left: startLeft, top: t, width: w, height: h });
+                shape.fill.setSolidColor(hex); shape.lineFormat.visible = false;
+
+                var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: startLeft, top: startTop + i * (layerH + gap), width: w, height: layerH });
+                txtBox.fill.clear(); txtBox.lineFormat.visible = false;
+                addText(txtBox, item.title + (item.desc ? " - " + item.desc : ""), (at === 'line') ? '#000000' : getTextColor(hex), 14);
+              }
+
+            // 5. ピラミッド
+            } else if (state.type === 'pyramid') {
+              var botW = 560, layerH = totalHeight / count;
+              for (var i = count - 1; i >= 0; i--) {
+                var item = state.items[i], hex = getItemHex(item, i), curW = botW * ((i + 1) / count), curH = totalHeight * ((i + 1) / count);
+                var shape = shapes.addGeometricShape(getShapeType('triangle'), { left: startLeft + (totalWidth - curW) / 2, top: startTop, width: curW, height: curH });
+                shape.fill.setSolidColor(hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 2;
+
+                var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: startLeft, top: startTop + i * layerH, width: totalWidth, height: layerH });
+                txtBox.fill.clear(); txtBox.lineFormat.visible = false;
+                addText(txtBox, item.title, getTextColor(hex), 14);
+              }
+
+            // 6. 2x2 マトリクス
+            } else if (state.type === 'matrix') {
+              var gap = 15, bw = (totalWidth - gap) / 2, bh = 140;
+              var pos = [{l:startLeft+bw+gap, t:startTop}, {l:startLeft, t:startTop}, {l:startLeft, t:startTop+bh+gap}, {l:startLeft+bw+gap, t:startTop+bh+gap}];
+              for (var i = 0; i < Math.min(count, 4); i++) {
+                var item = state.items[i], hex = getItemHex(item, i), p = pos[i];
+                var shape = shapes.addGeometricShape(getShapeType('roundRectangle'), { left: p.l, top: p.t, width: bw, height: bh });
+                shape.fill.setSolidColor(hex); shape.lineFormat.visible = false;
+                addText(shape, item.title + (item.desc ? "\n" + item.desc : ""), getTextColor(hex), 13);
+              }
+
+            // 7. ベン図
+            } else if (state.type === 'venn') {
+              var r = 200, ac = Math.min(count, 3), cx = startLeft + totalWidth / 2, cy = startTop + totalHeight / 2;
+              var pos = ac >= 3 ? [ { x: cx - 50, y: cy - 35 }, { x: cx + 50, y: cy - 35 }, { x: cx, y: cy + 50 } ] : [ { x: cx - 70, y: cy }, { x: cx + 70, y: cy } ];
+
+              for (var i = 0; i < ac; i++) {
+                var hex = getItemHex(state.items[i], i);
+                var shape = shapes.addGeometricShape(getShapeType('ellipse'), { left: pos[i].x - r/2, top: pos[i].y - r/2, width: r, height: r });
+                shape.fill.setSolidColor(hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 2;
+              }
+
+              var overlapBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: cx - 50, top: cy - 15, width: 100, height: 30 });
+              overlapBox.fill.clear(); overlapBox.lineFormat.visible = false;
+              addText(overlapBox, "[重なり]", "#000000", 12);
+
+              var txtPos = ac >= 3 ? [ { x: cx - 80, y: cy - 70 }, { x: cx + 80, y: cy - 70 }, { x: cx, y: cy + 90 } ] : [ { x: cx - 100, y: cy }, { x: cx + 100, y: cy } ];
+              for (var i = 0; i < ac; i++) {
+                var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: txtPos[i].x - 50, top: txtPos[i].y - 15, width: 100, height: 30 });
+                txtBox.fill.clear(); txtBox.lineFormat.visible = false;
+                addText(txtBox, state.items[i].title, "#000000", 13);
+              }
+
+            // 8. カラム比較
+            } else if (state.type === 'comparison') {
+              var gap = 20, colW = (totalWidth - (count - 1) * gap) / count;
+              for (var i = 0; i < count; i++) {
+                var item = state.items[i], hex = getItemHex(item, i), curLeft = startLeft + i * (colW + gap);
+                var head = shapes.addGeometricShape(getShapeType('rectangle'), { left: curLeft, top: startTop, width: colW, height: 40 });
+                head.fill.setSolidColor(hex); head.lineFormat.visible = false;
+                addText(head, item.title, getTextColor(hex), 13);
+
+                var body = shapes.addGeometricShape(getShapeType('rectangle'), { left: curLeft, top: startTop+45, width: colW, height: totalHeight-45 });
+                body.fill.setSolidColor("#FAFAFA"); body.lineFormat.color = hex; body.lineFormat.weight = 2;
+                addText(body, item.desc, "#000000", 12);
+              }
+
+            // 9. 循環ループ
+            } else if (state.type === 'cycle') {
+              var cx = startLeft + totalWidth / 2, cy = startTop + totalHeight / 2, r = 100;
+              var track = shapes.addGeometricShape(getShapeType('ellipse'), { left: cx - r, top: cy - r, width: r * 2, height: r * 2 });
+              track.fill.clear(); track.lineFormat.color = "#CBD5E1"; track.lineFormat.weight = 4;
+
+              for (var i = 0; i < count; i++) {
+                var item = state.items[i], hex = getItemHex(item, i), angle = (i * 2 * Math.PI / count) - (Math.PI / 2);
+                var nx = cx + r * Math.cos(angle), ny = cy + r * Math.sin(angle);
+
+                var shape = shapes.addGeometricShape(getShapeType('ellipse'), { left: nx - 30, top: ny - 30, width: 60, height: 60 });
+                shape.fill.setSolidColor(hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 2;
+
+                var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: nx - 60, top: ny + 32, width: 120, height: 30 });
+                txtBox.fill.clear(); txtBox.lineFormat.visible = false;
+                addText(txtBox, item.title, "#000000", 12);
+              }
+
+            // 10. 同心円
+            } else if (state.type === 'onion') {
+              var cx = startLeft + totalWidth / 2 - 40, cy = startTop + totalHeight / 2, maxR = Math.min(totalWidth / 2, totalHeight / 2);
+              for (var i = count - 1; i >= 0; i--) {
+                var hex = getItemHex(state.items[i], i), cr = (maxR / count) * (i + 1);
+                var shape = shapes.addGeometricShape(getShapeType('ellipse'), { left: cx - cr, top: cy - cr, width: cr * 2, height: cr * 2 });
+                shape.fill.setSolidColor(hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 2;
+
+                var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: cx - cr, top: cy - cr + 5, width: cr * 2, height: 25 });
+                txtBox.fill.clear(); txtBox.lineFormat.visible = false;
+                addText(txtBox, state.items[i].title, getTextColor(hex), 12);
+              }
+
+            // 11. タイムライン
+            } else if (state.type === 'timeline') {
+              var lineY = startTop + totalHeight / 2;
+              var line = shapes.addGeometricShape(getShapeType('rightArrow'), { left: startLeft, top: lineY - 8, width: totalWidth, height: 16 });
+              line.fill.setSolidColor("#CBD5E1"); line.lineFormat.visible = false;
+
+              var stepW = totalWidth / (count + 0.5);
+              for (var i = 0; i < count; i++) {
+                var item = state.items[i], hex = getItemHex(item, i), x = startLeft + 35 + i * stepW, isTop = (i % 2 === 0);
+
+                var stemH = 45, stemY = isTop ? lineY - stemH : lineY;
+                var stem = shapes.addGeometricShape(getShapeType('rectangle'), { left: x - 1, top: stemY, width: 2, height: stemH });
+                stem.fill.setSolidColor("#94A3B8"); stem.lineFormat.visible = false;
+
+                var dot = shapes.addGeometricShape(getShapeType('ellipse'), { left: x - 10, top: lineY - 10, width: 20, height: 20 });
+                dot.fill.setSolidColor(hex); dot.lineFormat.color = "#FFFFFF"; dot.lineFormat.weight = 2;
+
+                var boxY = isTop ? lineY - stemH - 40 : lineY + stemH;
+                var box = shapes.addGeometricShape(getShapeType('roundRectangle'), { left: x - 55, top: boxY, width: 110, height: 40 });
+                box.fill.clear(); box.lineFormat.visible = false;
+                addText(box, item.title, "#000000", 12);
+              }
             }
-          }
 
-        // 4. 単体カスタム矢印
-        } else if (state.type === 'standalone_arrow') {
-          var gap = 15, layerH = (totalHeight - (count - 1) * gap) / count;
-          var at = state.arrowType || 'block';
-          for (var i = 0; i < count; i++) {
-            var item = state.items[i], hex = getItemHex(item);
-            var sType = getShapeType('rightArrow'), w = totalWidth, h = layerH, t = startTop + i * (layerH + gap);
+            await context.sync();
+          });
 
-            if (at === 'line') {
-              h = Math.max(8, state.arrowWeight * 4); t = t + (layerH - h) / 2;
-            } else if (at === 'curved_up') {
-              sType = getShapeType('curvedUpArrow');
-            }
-
-            var shape = shapes.addGeometricShape(sType, { left: startLeft, top: t, width: w, height: h });
-            shape.fill.setSolidColor(hex); shape.lineFormat.visible = false;
-
-            var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: startLeft, top: startTop + i * (layerH + gap), width: w, height: layerH });
-            txtBox.fill.clear(); txtBox.lineFormat.visible = false;
-            addText(txtBox, item.title + (item.desc ? " - " + item.desc : ""), (at === 'line') ? '#000000' : getTextColor(hex), 14);
-          }
-
-        // 5. ピラミッド
-        } else if (state.type === 'pyramid') {
-          var botW = 560, layerH = totalHeight / count;
-          for (var i = count - 1; i >= 0; i--) {
-            var item = state.items[i], hex = getItemHex(item), curW = botW * ((i + 1) / count), curH = totalHeight * ((i + 1) / count);
-            var shape = shapes.addGeometricShape(getShapeType('triangle'), { left: startLeft + (totalWidth - curW) / 2, top: startTop, width: curW, height: curH });
-            shape.fill.setSolidColor(hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 2;
-
-            var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: startLeft, top: startTop + i * layerH, width: totalWidth, height: layerH });
-            txtBox.fill.clear(); txtBox.lineFormat.visible = false;
-            addText(txtBox, item.title, getTextColor(hex), 14);
-          }
-
-        // 6. 2x2 マトリクス
-        } else if (state.type === 'matrix') {
-          var gap = 15, bw = (totalWidth - gap) / 2, bh = 140;
-          var pos = [{l:startLeft+bw+gap, t:startTop}, {l:startLeft, t:startTop}, {l:startLeft, t:startTop+bh+gap}, {l:startLeft+bw+gap, t:startTop+bh+gap}];
-          for (var i = 0; i < Math.min(count, 4); i++) {
-            var item = state.items[i], hex = getItemHex(item), p = pos[i];
-            var shape = shapes.addGeometricShape(getShapeType('rectangle'), { left: p.l, top: p.t, width: bw, height: bh });
-            shape.fill.setSolidColor(hex); shape.lineFormat.visible = false;
-            addText(shape, item.title + (item.desc ? "\n" + item.desc : ""), getTextColor(hex), 13);
-          }
-
-        // 7. 3C / 2C ベン図
-        } else if (state.type === 'venn') {
-          var r = 200, ac = Math.min(count, 3), cx = startLeft + totalWidth / 2, cy = startTop + totalHeight / 2;
-          var pos = ac >= 3 ? [ { x: cx - 50, y: cy - 35 }, { x: cx + 50, y: cy - 35 }, { x: cx, y: cy + 50 } ] : [ { x: cx - 70, y: cy }, { x: cx + 70, y: cy } ];
-
-          for (var i = 0; i < ac; i++) {
-            var hex = getItemHex(state.items[i]);
-            var shape = shapes.addGeometricShape(getShapeType('ellipse'), { left: pos[i].x - r/2, top: pos[i].y - r/2, width: r, height: r });
-            shape.fill.setSolidColor(hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 2;
-          }
-
-          var overlapBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: cx - 50, top: cy - 15, width: 100, height: 30 });
-          overlapBox.fill.clear(); overlapBox.lineFormat.visible = false;
-          addText(overlapBox, "[重なり]", "#000000", 12);
-
-          var txtPos = ac >= 3 ? [ { x: cx - 80, y: cy - 70 }, { x: cx + 80, y: cy - 70 }, { x: cx, y: cy + 90 } ] : [ { x: cx - 100, y: cy }, { x: cx + 100, y: cy } ];
-          for (var i = 0; i < ac; i++) {
-            var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: txtPos[i].x - 50, top: txtPos[i].y - 15, width: 100, height: 30 });
-            txtBox.fill.clear(); txtBox.lineFormat.visible = false;
-            addText(txtBox, state.items[i].title, "#000000", 13);
-          }
-
-        // 8. カラム比較
-        } else if (state.type === 'comparison') {
-          var gap = 20, colW = (totalWidth - (count - 1) * gap) / count;
-          for (var i = 0; i < count; i++) {
-            var item = state.items[i], hex = getItemHex(item), curLeft = startLeft + i * (colW + gap);
-            var head = shapes.addGeometricShape(getShapeType('rectangle'), { left: curLeft, top: startTop, width: colW, height: 40 });
-            head.fill.setSolidColor(hex); head.lineFormat.visible = false;
-            addText(head, item.title, getTextColor(hex), 13);
-
-            var body = shapes.addGeometricShape(getShapeType('rectangle'), { left: curLeft, top: startTop+45, width: colW, height: totalHeight-45 });
-            body.fill.setSolidColor("#FAFAFA"); body.lineFormat.color = hex; body.lineFormat.weight = 2;
-            addText(body, item.desc, "#000000", 12);
-          }
-
-        // 9. 循環 / ループ
-        } else if (state.type === 'cycle') {
-          var cx = startLeft + totalWidth / 2, cy = startTop + totalHeight / 2, r = 100;
-          var track = shapes.addGeometricShape(getShapeType('ellipse'), { left: cx - r, top: cy - r, width: r * 2, height: r * 2 });
-          track.fill.clear(); track.lineFormat.color = "#CBD5E1"; track.lineFormat.weight = 4;
-
-          for (var i = 0; i < count; i++) {
-            var item = state.items[i], hex = getItemHex(item), angle = (i * 2 * Math.PI / count) - (Math.PI / 2);
-            var nx = cx + r * Math.cos(angle), ny = cy + r * Math.sin(angle);
-
-            var shape = shapes.addGeometricShape(getShapeType('ellipse'), { left: nx - 30, top: ny - 30, width: 60, height: 60 });
-            shape.fill.setSolidColor(hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 2;
-
-            var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: nx - 60, top: ny + 32, width: 120, height: 30 });
-            txtBox.fill.clear(); txtBox.lineFormat.visible = false;
-            addText(txtBox, item.title, "#000000", 12);
-          }
-
-        // 10. 同心円
-        } else if (state.type === 'onion') {
-          var cx = startLeft + totalWidth / 2 - 40, cy = startTop + totalHeight / 2, maxR = Math.min(totalWidth / 2, totalHeight / 2);
-          for (var i = count - 1; i >= 0; i--) {
-            var hex = getItemHex(state.items[i]), cr = (maxR / count) * (i + 1);
-            var shape = shapes.addGeometricShape(getShapeType('ellipse'), { left: cx - cr, top: cy - cr, width: cr * 2, height: cr * 2 });
-            shape.fill.setSolidColor(hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 2;
-
-            var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: cx - cr, top: cy - cr + 5, width: cr * 2, height: 25 });
-            txtBox.fill.clear(); txtBox.lineFormat.visible = false;
-            addText(txtBox, state.items[i].title, getTextColor(hex), 12);
-          }
-
-        // 11. タイムライン
-        } else if (state.type === 'timeline') {
-          var lineY = startTop + totalHeight / 2;
-          var line = shapes.addGeometricShape(getShapeType('rightArrow'), { left: startLeft, top: lineY - 8, width: totalWidth, height: 16 });
-          line.fill.setSolidColor("#CBD5E1"); line.lineFormat.visible = false;
-
-          var stepW = totalWidth / (count + 0.5);
-          for (var i = 0; i < count; i++) {
-            var item = state.items[i], hex = getItemHex(item), x = startLeft + 35 + i * stepW, isTop = (i % 2 === 0);
-
-            var stemH = 45, stemY = isTop ? lineY - stemH : lineY;
-            var stem = shapes.addGeometricShape(getShapeType('rectangle'), { left: x - 1, top: stemY, width: 2, height: stemH });
-            stem.fill.setSolidColor("#94A3B8"); stem.lineFormat.visible = false;
-
-            var dot = shapes.addGeometricShape(getShapeType('ellipse'), { left: x - 10, top: lineY - 10, width: 20, height: 20 });
-            dot.fill.setSolidColor(hex); dot.lineFormat.color = "#FFFFFF"; dot.lineFormat.weight = 2;
-
-            var boxY = isTop ? lineY - stemH - 40 : lineY + stemH;
-            var box = shapes.addGeometricShape(getShapeType('rectangle'), { left: x - 55, top: boxY, width: 110, height: 40 });
-            box.fill.clear(); box.lineFormat.visible = false;
-            addText(box, item.title, "#000000", 12);
-          }
+          log('✔ PowerPointに正常挿入されました！');
+        } else {
+          log('PowerPoint環境外です。', true);
         }
-
-        await context.sync();
-      });
-
-      log('✔ 編集可能な図形・テキストとして挿入しました！');
-    } else {
-      log('PowerPoint環境外のため実行できません。', true);
+      } catch (e) {
+        log('挿入エラー: ' + e.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'PowerPointに挿入';
+      }
     }
-  } catch (e) {
-    log('挿入エラー: ' + e.message, true);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'PowerPointに挿入';
-  }
-}
   </script>
 </body>
 </html>
