@@ -399,63 +399,198 @@
     function updatePreview() { document.getElementById('previewBox').innerHTML = generateSVG(); }
     function updateAll() { renderInputs(); updatePreview(); }
 
-    // PowerPoint JavaScript API（Office.js）を用いた図形挿入処理
-    async function insertToSlide() {
-      var btn = document.getElementById('btnInsert');
-      btn.disabled = true;
-      btn.textContent = '挿入中...';
-      log('PowerPointへベクター画像を挿入中...');
+// PowerPoint JavaScript API（PowerPoint.run）を用いたネイティブ図形挿入処理
+async function insertToSlide() {
+  var btn = document.getElementById('btnInsert');
+  btn.disabled = true;
+  btn.textContent = '挿入中...';
+  log('PowerPointへ編集可能な図形を挿入中...');
 
-      try {
-        // プレビューのSVGをBase64画像データに変換して挿入
-        var svgString = generateSVG();
-        var canvas = document.createElement('canvas');
-        canvas.width = 1000;
-        canvas.height = 500;
-        var ctx = canvas.getContext('2d');
-        
-        var img = new Image();
-        var encodedSvg = encodeURIComponent(svgString);
-        img.src = 'data:image/svg+xml;charset=utf-8,' + encodedSvg;
+  try {
+    if (typeof PowerPoint !== 'undefined' && PowerPoint.run) {
+      await PowerPoint.run(async (context) => {
+        // 現在アクティブなスライドを取得
+        const slide = context.presentation.getSelectedSlides().getItemAt(0);
+        const shapes = slide.shapes;
 
-        img.onload = function() {
-          ctx.drawImage(img, 0, 0, 1000, 500);
-          var base64Image = canvas.toDataURL('image/png').split(',')[1];
+        var count = state.items.length;
+        var startLeft = 80;
+        var startTop = 120;
+        var totalWidth = 560;
+        var totalHeight = 280;
 
-          // Office JS を使ってPowerPointの現在スライドへ挿入
-          Office.context.document.setSelectedDataAsync(
-            base64Image,
-            {
-              coercionType: Office.CoercionType.Image,
-              imageLeft: 100,
-              imageTop: 100,
-              imageWidth: 500,
-              imageHeight: 250
-            },
-            function(result) {
-              btn.disabled = false;
-              btn.textContent = 'PowerPointに挿入';
-              if (result.status === Office.AsyncResultStatus.Succeeded) {
-                log('✔ PowerPointスライドへの挿入が完了しました！');
-              } else {
-                log('挿入エラー: ' + result.error.message, true);
-              }
+        // 1. パーチェスファネル（台形重ね）
+        if (state.type === 'funnel') {
+          var layerH = totalHeight / count;
+          var topW = 520;
+          var botW = 200;
+          for (var i = 0; i < count; i++) {
+            var item = state.items[i];
+            var curW = topW - (topW - botW) * (i / (count > 1 ? count - 1 : 1));
+            var curLeft = startLeft + (totalWidth - curW) / 2;
+            var curTop = startTop + i * layerH;
+            var hex = getItemHex(item);
+            var txtCol = getTextColor(hex);
+
+            var shape = shapes.addGeometricShape(PowerPoint.GeometricShapeType.trapezoid, {
+              left: curLeft,
+              top: curTop,
+              width: curW,
+              height: layerH - 4
+            });
+            shape.fill.setSolidColor(hex);
+            shape.lineFormat.color = "#FFFFFF";
+            shape.lineFormat.weight = 1.5;
+
+            var tf = shape.textFrame;
+            tf.textRange.text = item.title + (item.desc ? "\n" + item.desc : "");
+            tf.textRange.font.color = txtCol;
+            tf.textRange.font.bold = true;
+            tf.textRange.font.size = 14;
+          }
+
+        // 2. シェブロン（横ステップ矢印）
+        } else if (state.type === 'chevron') {
+          var gap = 10;
+          var boxW = (totalWidth - (count - 1) * gap) / count;
+          for (var i = 0; i < count; i++) {
+            var item = state.items[i];
+            var curLeft = startLeft + i * (boxW + gap);
+            var hex = getItemHex(item);
+            var txtCol = getTextColor(hex);
+
+            var shape = shapes.addGeometricShape(PowerPoint.GeometricShapeType.chevron, {
+              left: curLeft,
+              top: startTop + 40,
+              width: boxW,
+              height: 180
+            });
+            shape.fill.setSolidColor(hex);
+            shape.lineFormat.visible = false;
+
+            var tf = shape.textFrame;
+            tf.textRange.text = item.title + (item.desc ? "\n" + item.desc : "");
+            tf.textRange.font.color = txtCol;
+            tf.textRange.font.bold = true;
+            tf.textRange.font.size = 13;
+          }
+
+        // 3. プロセス（四角形 ＋ 矢印）
+        } else if (state.type === 'process_arrow') {
+          var gap = 8;
+          var arrowW = 20;
+          var boxW = (totalWidth - (count - 1) * (gap * 2 + arrowW)) / count;
+          for (var i = 0; i < count; i++) {
+            var item = state.items[i];
+            var curLeft = startLeft + i * (boxW + gap * 2 + arrowW);
+            var hex = getItemHex(item);
+            var txtCol = getTextColor(hex);
+
+            var shape = shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle, {
+              left: curLeft,
+              top: startTop + 60,
+              width: boxW,
+              height: 140
+            });
+            shape.fill.setSolidColor(hex);
+            shape.lineFormat.visible = false;
+
+            var tf = shape.textFrame;
+            tf.textRange.text = item.title + (item.desc ? "\n" + item.desc : "");
+            tf.textRange.font.color = txtCol;
+            tf.textRange.font.bold = true;
+            tf.textRange.font.size = 13;
+
+            if (i < count - 1) {
+              var arrowLeft = curLeft + boxW + gap;
+              var arrow = shapes.addGeometricShape(PowerPoint.GeometricShapeType.rightArrow, {
+                left: arrowLeft,
+                top: startTop + 115,
+                width: arrowW,
+                height: 30
+              });
+              arrow.fill.setSolidColor("#6F6F6F");
+              arrow.lineFormat.visible = false;
             }
-          );
-        };
+          }
 
-        img.onerror = function() {
-          btn.disabled = false;
-          btn.textContent = 'PowerPointに挿入';
-          log('画像変換エラーが発生しました。', true);
-        };
+        // 4. マトリクス（2x2）
+        } else if (state.type === 'matrix') {
+          var gap = 15;
+          var bw = (totalWidth - gap) / 2;
+          var bh = 130;
+          var positions = [
+            { left: startLeft + bw + gap, top: startTop },
+            { left: startLeft, top: startTop },
+            { left: startLeft, top: startTop + bh + gap },
+            { left: startLeft + bw + gap, top: startTop + bh + gap }
+          ];
+          for (var i = 0; i < Math.min(count, 4); i++) {
+            var item = state.items[i];
+            var pos = positions[i];
+            var hex = getItemHex(item);
+            var txtCol = getTextColor(hex);
 
-      } catch (e) {
-        btn.disabled = false;
-        btn.textContent = 'PowerPointに挿入';
-        log('例外エラー: ' + e.message, true);
-      }
+            var shape = shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle, {
+              left: pos.left,
+              top: pos.top,
+              width: bw,
+              height: bh
+            });
+            shape.fill.setSolidColor(hex);
+            shape.lineFormat.visible = false;
+
+            var tf = shape.textFrame;
+            tf.textRange.text = item.title + (item.desc ? "\n" + item.desc : "");
+            tf.textRange.font.color = txtCol;
+            tf.textRange.font.bold = true;
+            tf.textRange.font.size = 14;
+          }
+
+        // その他の図形タイプ（汎用ボックス/円形モデル）
+        } else {
+          var boxW = (totalWidth - (count - 1) * 12) / count;
+          for (var i = 0; i < count; i++) {
+            var item = state.items[i];
+            var curLeft = startLeft + i * (boxW + 12);
+            var hex = getItemHex(item);
+            var txtCol = getTextColor(hex);
+
+            var shapeType = (state.type === 'cycle' || state.type === 'onion' || state.type === 'venn') 
+              ? PowerPoint.GeometricShapeType.oval 
+              : PowerPoint.GeometricShapeType.rectangle;
+
+            var shape = shapes.addGeometricShape(shapeType, {
+              left: curLeft,
+              top: startTop + 60,
+              width: boxW,
+              height: 150
+            });
+            shape.fill.setSolidColor(hex);
+            shape.lineFormat.visible = false;
+
+            var tf = shape.textFrame;
+            tf.textRange.text = item.title + (item.desc ? "\n" + item.desc : "");
+            tf.textRange.font.color = txtCol;
+            tf.textRange.font.bold = true;
+            tf.textRange.font.size = 13;
+          }
+        }
+
+        await context.sync();
+      });
+
+      log('✔ 編集可能な図形・テキストとして挿入しました！');
+    } else {
+      log('PowerPoint環境外のため実行できません。', true);
     }
+  } catch (e) {
+    log('挿入エラー: ' + e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'PowerPointに挿入';
+  }
+}
   </script>
 </body>
 </html>
