@@ -399,7 +399,7 @@
     function updatePreview() { document.getElementById('previewBox').innerHTML = generateSVG(); }
     function updateAll() { renderInputs(); updatePreview(); }
 
-// PowerPoint JavaScript API（PowerPoint.run）を用いた全11種のネイティブ図形挿入処理
+// PowerPoint JavaScript API（PowerPoint.run）を用いた全11種のネイティブ図形挿入処理（最終修正版）
 async function insertToSlide() {
   var btn = document.getElementById('btnInsert');
   btn.disabled = true;
@@ -418,19 +418,28 @@ async function insertToSlide() {
         var totalWidth = 600;
         var totalHeight = 300;
 
-        // 1. パーチェスファネル（台形重ね ※API制限により角度調整不可）
+        // 1. パーチェスファネル（台形を反転して長辺を上に）
         if (state.type === 'funnel') {
           var layerH = totalHeight / count;
-          var topW = 520, botW = 200;
+          var topW = 540, botW = 150;
           for (var i = 0; i < count; i++) {
             var item = state.items[i], hex = getItemHex(item);
             var curW = topW - (topW - botW) * (i / (count > 1 ? count - 1 : 1));
+            
+            // 図形本体（180度回転させて逆台形にする）
             var shape = shapes.addGeometricShape(PowerPoint.GeometricShapeType.trapezoid, {
-              left: startLeft + (totalWidth - curW) / 2, top: startTop + i * layerH, width: curW, height: layerH - 3
+              left: startLeft + (totalWidth - curW) / 2, top: startTop + i * layerH, width: curW, height: layerH - 2
             });
             shape.fill.setSolidColor(hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 1.5;
-            shape.textFrame.textRange.text = item.title + (item.desc ? "\n" + item.desc : "");
-            shape.textFrame.textRange.font.color = getTextColor(hex); shape.textFrame.textRange.font.bold = true;
+            shape.rotation = 180; 
+
+            // テキストが逆さまにならないよう、透明なテキストボックスを上に被せる
+            var txtBox = shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle, {
+              left: startLeft + (totalWidth - curW) / 2, top: startTop + i * layerH, width: curW, height: layerH - 2
+            });
+            txtBox.fill.clear(); txtBox.lineFormat.visible = false;
+            txtBox.textFrame.textRange.text = item.title + (item.desc ? "\n" + item.desc : "");
+            txtBox.textFrame.textRange.font.color = getTextColor(hex); txtBox.textFrame.textRange.font.bold = true;
           }
 
         // 2. シェブロン（横ステップ矢印）
@@ -467,41 +476,54 @@ async function insertToSlide() {
 
         // 4. 単体カスタム矢印（UI選択に連動）
         } else if (state.type === 'standalone_arrow') {
-          var gap = 20, layerH = (totalHeight - (count - 1) * gap) / count;
+          var gap = 15, layerH = (totalHeight - (count - 1) * gap) / count;
           var at = state.arrowType || 'block'; 
           for (var i = 0; i < count; i++) {
             var item = state.items[i], hex = getItemHex(item);
             var sType = PowerPoint.GeometricShapeType.rightArrow;
             var w = totalWidth, h = layerH, t = startTop + i * (layerH + gap);
             
-            // 直線（太さに応じて細い矢印化）
+            // 直線（高さを細くして直線矢印を表現）
             if (at === 'line') {
-              h = state.arrowWeight * 5; 
+              h = state.arrowWeight * 4; 
               t = t + (layerH - h) / 2;
-            // 曲線
             } else if (at === 'curved_up') {
-              sType = PowerPoint.GeometricShapeType.bentUpArrow; 
+              sType = PowerPoint.GeometricShapeType.bentUpArrow; // 曲がり矢印
             }
             
             var shape = shapes.addGeometricShape(sType, { left: startLeft, top: t, width: w, height: h });
             shape.fill.setSolidColor(hex); shape.lineFormat.visible = false;
-            shape.textFrame.textRange.text = item.title + (item.desc ? " - " + item.desc : "");
-            shape.textFrame.textRange.font.color = getTextColor(hex); shape.textFrame.textRange.font.bold = true;
+            
+            // 図形が細くても曲がっていても文字が中央に来るよう透明ボックスを配置
+            var txtBox = shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle, { left: startLeft, top: startTop + i * (layerH + gap), width: w, height: layerH });
+            txtBox.fill.clear(); txtBox.lineFormat.visible = false;
+            txtBox.textFrame.textRange.text = item.title + (item.desc ? " - " + item.desc : "");
+            txtBox.textFrame.textRange.font.color = (at === 'line') ? '#000000' : getTextColor(hex); 
+            txtBox.textFrame.textRange.font.bold = true;
           }
 
-        // 5. ピラミッド（上部を三角形、下部を台形で表現）
+        // 5. ピラミッド（すべて三角形を重ねる構造）
         } else if (state.type === 'pyramid') {
-          var layerH = totalHeight / count, botW = 500;
-          for (var i = 0; i < count; i++) {
+          var botW = 560;
+          var layerH = totalHeight / count;
+          // 背面（一番大きい底辺の三角形）から順に描画して重ねる
+          for (var i = count - 1; i >= 0; i--) {
             var item = state.items[i], hex = getItemHex(item);
             var curW = botW * ((i + 1) / count);
-            var sType = (i === 0) ? PowerPoint.GeometricShapeType.triangle : PowerPoint.GeometricShapeType.trapezoid;
-            var shape = shapes.addGeometricShape(sType, {
-              left: startLeft + (totalWidth - curW) / 2, top: startTop + i * layerH, width: curW, height: layerH - 2
+            var curH = totalHeight * ((i + 1) / count);
+            
+            var shape = shapes.addGeometricShape(PowerPoint.GeometricShapeType.triangle, {
+              left: startLeft + (totalWidth - curW) / 2, top: startTop, width: curW, height: curH
             });
-            shape.fill.setSolidColor(hex); shape.lineFormat.color = "#FFFFFF";
-            shape.textFrame.textRange.text = item.title;
-            shape.textFrame.textRange.font.color = getTextColor(hex); shape.textFrame.textRange.font.bold = true;
+            shape.fill.setSolidColor(hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 2;
+            
+            // テキストは該当セグメントの高さ帯（透明ボックス）に配置
+            var txtBox = shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle, {
+              left: startLeft, top: startTop + i * layerH, width: totalWidth, height: layerH
+            });
+            txtBox.fill.clear(); txtBox.lineFormat.visible = false;
+            txtBox.textFrame.textRange.text = item.title;
+            txtBox.textFrame.textRange.font.color = getTextColor(hex); txtBox.textFrame.textRange.font.bold = true;
           }
 
         // 6. 2x2 マトリクス
@@ -516,21 +538,22 @@ async function insertToSlide() {
             shape.textFrame.textRange.font.color = getTextColor(hex); shape.textFrame.textRange.font.bold = true;
           }
 
-        // 7. 3C / 2C ベン図（透過円＋中央テキスト）
+        // 7. 3C / 2C ベン図（透過円＋外側テキスト配置）
         } else if (state.type === 'venn') {
-          var r = 200, ac = Math.min(count, 3);
+          var r = 220, ac = Math.min(count, 3);
           var cx = startLeft + totalWidth / 2, cy = startTop + totalHeight / 2;
-          var pos = ac >= 3 ? [ { x: cx - 60, y: cy - 40 }, { x: cx + 60, y: cy - 40 }, { x: cx, y: cy + 60 } ] : [ { x: cx - 70, y: cy }, { x: cx + 70, y: cy } ];
-          // 円を描画
+          var pos = ac >= 3 ? [ { x: cx - 60, y: cy - 40 }, { x: cx + 60, y: cy - 40 }, { x: cx, y: cy + 60 } ] : [ { x: cx - 80, y: cy }, { x: cx + 80, y: cy } ];
+          
           for (var i = 0; i < ac; i++) {
             var hex = getItemHex(state.items[i]);
             var shape = shapes.addGeometricShape(PowerPoint.GeometricShapeType.oval, { left: pos[i].x - r/2, top: pos[i].y - r/2, width: r, height: r });
-            shape.fill.setSolidColor(hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 2;
-            shape.fill.transparency = 0.3; // 透過設定
+            shape.fill.setSolidColor(hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 3;
+            shape.fill.transparency = 0.25; // 透過
           }
-          // テキストを前面に配置
+          // テキストは読みやすいよう各円のコア部分へ配置
+          var txtPos = ac >= 3 ? [ { x: cx - 90, y: cy - 70 }, { x: cx + 90, y: cy - 70 }, { x: cx, y: cy + 90 } ] : [ { x: cx - 110, y: cy }, { x: cx + 110, y: cy } ];
           for (var i = 0; i < ac; i++) {
-            var txtBox = shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle, { left: pos[i].x - r/2, top: pos[i].y - 20, width: r, height: 40 });
+            var txtBox = shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle, { left: txtPos[i].x - 60, top: txtPos[i].y - 20, width: 120, height: 40 });
             txtBox.fill.clear(); txtBox.lineFormat.visible = false;
             txtBox.textFrame.textRange.text = state.items[i].title;
             txtBox.textFrame.textRange.font.color = "#000000"; txtBox.textFrame.textRange.font.bold = true;
@@ -549,63 +572,61 @@ async function insertToSlide() {
             body.textFrame.textRange.text = item.desc; body.textFrame.textRange.font.color = "#000000";
           }
 
-        // 9. 循環 / ループ（円を並べて間に矢印を配置）
+        // 9. 循環 / ループ（軌道線を背景に敷き、ノードを円形配置）
         } else if (state.type === 'cycle') {
-          var cx = startLeft + totalWidth / 2, cy = startTop + totalHeight / 2, r = 110;
+          var cx = startLeft + totalWidth / 2, cy = startTop + totalHeight / 2, r = 100;
+          // 背景の軌道円
+          var track = shapes.addGeometricShape(PowerPoint.GeometricShapeType.oval, { left: cx - r, top: cy - r, width: r * 2, height: r * 2 });
+          track.fill.clear(); track.lineFormat.color = "#CBD5E1"; track.lineFormat.weight = 4;
+          
           for (var i = 0; i < count; i++) {
             var item = state.items[i], hex = getItemHex(item);
             var angle = (i * 2 * Math.PI / count) - (Math.PI / 2);
-            // 円
-            var shape = shapes.addGeometricShape(PowerPoint.GeometricShapeType.oval, { left: cx + r * Math.cos(angle) - 45, top: cy + r * Math.sin(angle) - 45, width: 90, height: 90 });
-            shape.fill.setSolidColor(hex); shape.lineFormat.color = "#FFFFFF";
-            shape.textFrame.textRange.text = item.title; shape.textFrame.textRange.font.color = getTextColor(hex); shape.textFrame.textRange.font.bold = true;
+            var nx = cx + r * Math.cos(angle);
+            var ny = cy + r * Math.sin(angle);
             
-            // 接続矢印
-            var nextAngle = ((i + 1) * 2 * Math.PI / count) - (Math.PI / 2);
-            var arrowAngle = (angle + nextAngle) / 2;
-            var rotDeg = (arrowAngle * 180 / Math.PI) + 90; 
-            var arrow = shapes.addGeometricShape(PowerPoint.GeometricShapeType.rightArrow, { left: cx + r * Math.cos(arrowAngle) - 15, top: cy + r * Math.sin(arrowAngle) - 15, width: 30, height: 30 });
-            arrow.fill.setSolidColor("#6F6F6F"); arrow.lineFormat.visible = false; arrow.rotation = rotDeg;
+            // ノード（円）
+            var shape = shapes.addGeometricShape(PowerPoint.GeometricShapeType.oval, { left: nx - 35, top: ny - 35, width: 70, height: 70 });
+            shape.fill.setSolidColor(hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 2;
+            
+            // テキスト（外側に配置）
+            var txtBox = shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle, { left: nx - 60, top: ny + 35, width: 120, height: 40 });
+            txtBox.fill.clear(); txtBox.lineFormat.visible = false;
+            txtBox.textFrame.textRange.text = item.title;
+            txtBox.textFrame.textRange.font.color = "#000000"; txtBox.textFrame.textRange.font.bold = true;
           }
 
         // 10. 同心円（オニオン構造）
         } else if (state.type === 'onion') {
-          var cx = startLeft + totalWidth / 2, cy = startTop + totalHeight / 2 + 20, maxR = Math.min(totalWidth / 2, totalHeight / 2);
-          // 後ろの大きな円から描画
+          var cx = startLeft + totalWidth / 2 - 50, cy = startTop + totalHeight / 2, maxR = Math.min(totalWidth / 2, totalHeight / 2);
           for (var i = count - 1; i >= 0; i--) {
             var hex = getItemHex(state.items[i]), cr = (maxR / count) * (i + 1);
             var shape = shapes.addGeometricShape(PowerPoint.GeometricShapeType.oval, { left: cx - cr, top: cy - cr, width: cr * 2, height: cr * 2 });
             shape.fill.setSolidColor(hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 2;
-          }
-          // テキストが隠れないよう最後に配置
-          for (var i = count - 1; i >= 0; i--) {
-            var item = state.items[i], hex = getItemHex(item), cr = (maxR / count) * (i + 1);
+            
             var txtBox = shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle, { left: cx - cr, top: cy - cr + 5, width: cr * 2, height: 30 });
             txtBox.fill.clear(); txtBox.lineFormat.visible = false;
-            txtBox.textFrame.textRange.text = item.title; txtBox.textFrame.textRange.font.color = getTextColor(hex); txtBox.textFrame.textRange.font.bold = true;
+            txtBox.textFrame.textRange.text = state.items[i].title; txtBox.textFrame.textRange.font.color = getTextColor(hex); txtBox.textFrame.textRange.font.bold = true;
           }
 
-        // 11. タイムライン（軸線＋ドット＋テキストボックス）
+        // 11. タイムライン（太い矢印を軸にマイルストーンを配置）
         } else if (state.type === 'timeline') {
           var lineY = startTop + totalHeight / 2;
-          var line = shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle, { left: startLeft, top: lineY - 2, width: totalWidth, height: 4 });
-          line.fill.setSolidColor("#6F6F6F"); line.lineFormat.visible = false;
-          var stepW = totalWidth / Math.max(1, count - 1);
+          // 軸となる矢印
+          var line = shapes.addGeometricShape(PowerPoint.GeometricShapeType.rightArrow, { left: startLeft, top: lineY - 10, width: totalWidth, height: 20 });
+          line.fill.setSolidColor("#E2E8F0"); line.lineFormat.visible = false;
           
+          var stepW = totalWidth / (count + 0.5); 
           for (var i = 0; i < count; i++) {
-            var item = state.items[i], hex = getItemHex(item), x = startLeft + i * stepW, isTop = (i % 2 === 0);
-            // 縦の線（ステム）
-            var stemH = 60, stemY = isTop ? lineY - stemH : lineY;
-            var stem = shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle, { left: x - 1, top: stemY, width: 2, height: stemH });
-            stem.fill.setSolidColor("#6F6F6F"); stem.lineFormat.visible = false;
-            // ドット
-            var dot = shapes.addGeometricShape(PowerPoint.GeometricShapeType.oval, { left: x - 8, top: lineY - 8, width: 16, height: 16 });
+            var item = state.items[i], hex = getItemHex(item), x = startLeft + 40 + i * stepW, isTop = (i % 2 === 0);
+            
+            var dot = shapes.addGeometricShape(PowerPoint.GeometricShapeType.oval, { left: x - 12, top: lineY - 12, width: 24, height: 24 });
             dot.fill.setSolidColor(hex); dot.lineFormat.color = "#FFFFFF"; dot.lineFormat.weight = 2;
-            // ボックス
-            var boxW = 110, boxH = 50, boxY = isTop ? lineY - stemH - boxH : lineY + stemH;
-            var box = shapes.addGeometricShape(PowerPoint.GeometricShapeType.roundRectangle, { left: x - boxW/2, top: boxY, width: boxW, height: boxH });
-            box.fill.setSolidColor(hex); box.lineFormat.visible = false;
-            box.textFrame.textRange.text = item.title; box.textFrame.textRange.font.color = getTextColor(hex); box.textFrame.textRange.font.bold = true;
+            
+            var boxY = isTop ? lineY - 80 : lineY + 20;
+            var box = shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle, { left: x - 60, top: boxY, width: 120, height: 50 });
+            box.fill.clear(); box.lineFormat.visible = false;
+            box.textFrame.textRange.text = item.title; box.textFrame.textRange.font.color = "#000000"; box.textFrame.textRange.font.bold = true;
           }
         }
 
