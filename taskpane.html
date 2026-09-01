@@ -354,10 +354,11 @@
     function getShapeType(key) {
       if (typeof PowerPoint !== 'undefined' && PowerPoint.GeometricShapeType) {
         var GST = PowerPoint.GeometricShapeType;
-        var map = { 'rectangle': GST.rectangle, 'roundRectangle': GST.roundRectangle, 'trapezoid': GST.trapezoid, 'chevron': GST.chevron, 'rightArrow': GST.rightArrow, 'curvedUpArrow': GST.bentUpArrow || GST.curvedUpArrow, 'triangle': GST.triangle, 'ellipse': GST.ellipse };
+        // 【修正】直角矢印（bentUpArrow）の予備設定を削除し、確実に曲線矢印（curvedUpArrow）を指定
+        var map = { 'rectangle': GST.rectangle, 'roundRectangle': GST.roundRectangle, 'trapezoid': GST.trapezoid, 'chevron': GST.chevron, 'rightArrow': GST.rightArrow, 'curvedUpArrow': GST.curvedUpArrow, 'triangle': GST.triangle, 'ellipse': GST.ellipse };
         if (map[key]) return map[key];
       }
-      var fallbackMap = { 'rectangle': 'Rectangle', 'roundRectangle': 'RoundRectangle', 'trapezoid': 'Trapezoid', 'chevron': 'Chevron', 'rightArrow': 'RightArrow', 'curvedUpArrow': 'BentUpArrow', 'triangle': 'Triangle', 'ellipse': 'Ellipse' };
+      var fallbackMap = { 'rectangle': 'Rectangle', 'roundRectangle': 'RoundRectangle', 'trapezoid': 'Trapezoid', 'chevron': 'Chevron', 'rightArrow': 'RightArrow', 'curvedUpArrow': 'CurvedUpArrow', 'triangle': 'Triangle', 'ellipse': 'Ellipse' };
       return fallbackMap[key] || 'Rectangle';
     }
 
