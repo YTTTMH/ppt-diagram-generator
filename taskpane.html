@@ -4,100 +4,125 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>構造図ジェネレーター</title>
-  <!-- Office.js SDK -->
   <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 16px; background: #f8fafc; color: #1e293b; font-size: 13px; }
-    h2 { font-size: 16px; font-weight: 700; margin-bottom: 12px; color: #0f172a; border-bottom: 2px solid #d24726; padding-bottom: 4px; }
-    .form-group { margin-bottom: 14px; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; }
-    label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 12px; color: #334155; }
-    select, input[type="text"], input[type="range"] { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #f8fafc; }
+    :root {
+      --primary: #c24127;
+      --bg-color: #f5f7f9;
+      --border-color: #e2e8f0;
+      --text-main: #1e293b;
+      --text-sub: #475569;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; }
+    body { background-color: var(--bg-color); padding: 20px; color: var(--text-main); }
     
-    /* カラー設定UIのスタイル */
-    .color-mode-toggle { display: flex; gap: 10px; margin-bottom: 10px; font-size: 12px; }
-    .color-settings-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-    .color-picker-lg { width: 40px; height: 40px; padding: 0; border: none; border-radius: 4px; cursor: pointer; }
-    .range-label { display: flex; justify-content: space-between; font-size: 11px; color: #64748b; margin-top: 4px; }
+    /* ヘッダー */
+    h2 { font-size: 18px; font-weight: bold; padding-bottom: 8px; border-bottom: 2px solid var(--primary); margin-bottom: 20px; }
+    
+    /* 共通ラベル */
+    .section-title { font-size: 13px; font-weight: bold; margin-bottom: 8px; color: var(--text-main); }
+    
+    /* コントロール（選択・入力） */
+    select, input[type="text"] { width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; color: var(--text-main); background: #fff; }
+    select { margin-bottom: 20px; appearance: auto; }
+    
+    /* カラー設定エリア（スクショの世界観に合わせてデザイン） */
+    .color-settings-box { background: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 20px; }
+    .color-radio-group { display: flex; gap: 16px; margin-bottom: 12px; font-size: 12px; color: var(--text-sub); }
+    .color-radio-group label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+    .auto-color-controls { display: flex; align-items: center; gap: 12px; }
+    .base-color-picker { width: 36px; height: 36px; padding: 0; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; background: #fff; }
+    .range-wrapper { flex: 1; }
+    input[type="range"] { width: 100%; margin-bottom: 4px; accent-color: var(--primary); }
+    .range-labels { display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; }
 
-    .item-list { margin-bottom: 12px; }
-    .item-row { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; background: #fff; padding: 8px; border-radius: 6px; border: 1px solid #e2e8f0; }
-    .item-row input[type="text"] { flex: 1; padding: 6px; }
-    .item-row input[type="color"] { width: 30px; height: 30px; border: none; cursor: pointer; background: transparent; padding: 0; }
+    /* 要素追加ボタン */
+    .btn-add { background: #e2e8f0; color: var(--text-sub); border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; margin-bottom: 12px; display: inline-flex; align-items: center; gap: 4px; }
+    .btn-add:hover { background: #cbd5e1; }
+
+    /* 要素リスト（スクショ完全再現） */
+    .item-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+    .item-row { background: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; display: flex; align-items: center; gap: 10px; }
     
-    .btn { display: inline-flex; align-items: center; justify-content: center; width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 14px; }
-    .btn-primary { background: #d24726; color: #fff; margin-top: 10px; }
-    .btn-primary:hover { background: #b0361a; }
-    .btn-secondary { background: #e2e8f0; color: #334155; width: auto; padding: 6px 12px; font-size: 12px; margin-bottom: 8px; }
-    .btn-danger { background: #ef4444; color: #fff; width: 28px; height: 28px; padding: 0; border-radius: 4px; font-size: 14px; }
-    #log { margin-top: 12px; padding: 10px; border-radius: 6px; font-size: 12px; background: #e2e8f0; color: #334155; word-break: break-all; text-align: center; font-weight: bold;}
+    /* カラーインジケーター（スクショの左端の四角） */
+    .color-indicator { width: 16px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+    .color-picker-small { width: 24px; height: 24px; padding: 0; border: none; border-radius: 4px; cursor: pointer; background: transparent; flex-shrink: 0; }
+
+    /* 入力欄（タイトルと説明） */
+    .item-inputs { flex: 1; display: flex; gap: 8px; }
+    
+    /* 削除ボタン（赤い×ボタン） */
+    .btn-delete { background: #ef4444; color: #fff; border: none; border-radius: 4px; width: 28px; height: 28px; flex-shrink: 0; cursor: pointer; font-size: 16px; font-weight: bold; display: flex; align-items: center; justify-content: center; }
+    .btn-delete:hover { background: #dc2626; }
+
+    /* 挿入ボタン（スクショの大きなオレンジボタン） */
+    .btn-insert { background: var(--primary); color: #fff; border: none; padding: 14px; width: 100%; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-bottom: 12px; }
+    .btn-insert:hover { background: #a8351f; }
+    .btn-insert:disabled { background: #94a3b8; cursor: not-allowed; }
+
+    /* ステータスログ（スクショの下部のグレーエリア） */
+    .status-log { background: #e2e8f0; color: var(--text-sub); padding: 12px; border-radius: 6px; font-size: 12px; text-align: left; }
   </style>
 </head>
 <body>
 
   <h2>構造図ジェネレーター</h2>
 
-  <div class="form-group">
-    <label>図形タイプ</label>
-    <select id="typeSelect" onchange="onTypeChange(this.value)">
-      <option value="funnel">1. パーチェスファネル</option>
-      <option value="chevron">2. シェブロン（横ステップ）</option>
-      <option value="process_arrow">3. プロセス（角丸＋矢印）</option>
-      <option value="standalone_arrow">4. 単体矢印（直線/曲線/ブロック）</option>
-      <option value="pyramid">5. ピラミッド</option>
-      <option value="matrix">6. 2x2 マトリクス</option>
-      <option value="venn">7. ベン図（2C / 3C）</option>
-      <option value="comparison">8. カラム比較</option>
-      <option value="cycle">9. 循環ループ</option>
-      <option value="onion">10. 同心円（オニオン）</option>
-      <option value="timeline">11. タイムライン</option>
+  <div class="section-title">図形タイプ</div>
+  <select id="typeSelect" onchange="onTypeChange(this.value)">
+    <option value="funnel">1. パーチェスファネル</option>
+    <option value="chevron">2. シェブロン（横ステップ）</option>
+    <option value="process_arrow">3. プロセス（角丸＋矢印）</option>
+    <option value="standalone_arrow">4. 単体矢印（直線/曲線/ブロック）</option>
+    <option value="pyramid">5. ピラミッド</option>
+    <option value="matrix">6. 2x2 マトリクス</option>
+    <option value="venn">7. ベン図（2C / 3C）</option>
+    <option value="comparison">8. カラム比較</option>
+    <option value="cycle">9. 循環ループ</option>
+    <option value="onion">10. 同心円（オニオン）</option>
+    <option value="timeline">11. タイムライン</option>
+  </select>
+  
+  <div id="arrowSubOptions" style="display:none; margin-top: -10px; margin-bottom: 20px;">
+    <div class="section-title">矢印の形状</div>
+    <select id="arrowTypeSelect" onchange="state.arrowType=this.value;">
+      <option value="block">ブロック矢印</option>
+      <option value="curved_up">曲線矢印（右上り）</option>
+      <option value="line">直線矢印</option>
     </select>
-    
-    <div id="arrowSubOptions" style="display:none; margin-top: 10px;">
-      <label>矢印の形状</label>
-      <select id="arrowTypeSelect" onchange="state.arrowType=this.value;">
-        <option value="block">ブロック矢印</option>
-        <option value="curved_up">曲線矢印（右上り）</option>
-        <option value="line">直線矢印</option>
-      </select>
-    </div>
   </div>
 
-  <!-- 【復元】カラー設定UI -->
-  <div class="form-group">
-    <label>カラー設定</label>
-    <div class="color-mode-toggle">
-      <label><input type="radio" name="colorMode" value="auto" checked onchange="changeColorMode(this.value)"> 基本カラーから自動生成</label>
+  <div class="section-title">カラー設定</div>
+  <div class="color-settings-box">
+    <div class="color-radio-group">
+      <label><input type="radio" name="colorMode" value="auto" checked onchange="changeColorMode(this.value)"> 基本色から自動生成</label>
       <label><input type="radio" name="colorMode" value="manual" onchange="changeColorMode(this.value)"> 個別に設定</label>
     </div>
-
-    <div id="autoColorArea">
-      <div class="color-settings-row">
-        <input type="color" id="baseColor" class="color-picker-lg" value="#0284c7" onchange="state.baseColor=this.value; renderItems();">
-        <span style="font-size: 12px; font-weight: bold; color: #334155;">全体基本カラー</span>
+    <div id="autoColorArea" class="auto-color-controls">
+      <input type="color" id="baseColor" class="base-color-picker" value="#0284c7" onchange="state.baseColor=this.value; renderItems();">
+      <div class="range-wrapper">
+        <input type="range" id="colorStep" min="-30" max="30" value="15" oninput="state.colorStep=parseInt(this.value); renderItems();">
+        <div class="range-labels">
+          <span>暗く</span><span>変化なし</span><span>明るく</span>
+        </div>
       </div>
-      <label style="margin-top: 10px;">階層ごとのグラデーション変化（明度）</label>
-      <input type="range" id="colorStep" min="-30" max="30" value="15" oninput="state.colorStep=parseInt(this.value); renderItems();">
-      <div class="range-label"><span>暗くする</span><span>変化なし</span><span>明るくする</span></div>
     </div>
   </div>
 
-  <div class="form-group">
-    <label>要素一覧</label>
-    <button class="btn btn-secondary" onclick="addItem()">＋ 要素を追加</button>
-    <div id="itemList" class="item-list"></div>
-  </div>
+  <div class="section-title">要素一覧</div>
+  <button class="btn-add" onclick="addItem()">＋ 要素を追加</button>
+  <div id="itemList" class="item-list"></div>
 
-  <button id="btnInsert" class="btn btn-primary" onclick="insertToSlide()">PowerPointに挿入</button>
-  <div id="log">準備完了</div>
+  <button id="btnInsert" class="btn-insert" onclick="insertToSlide()">PowerPointに挿入</button>
+  <div id="log" class="status-log">準備完了</div>
 
   <script>
-    // State 管理（カラーモードとスライダーの数値を保持）
+    // State 管理
     var state = {
       type: 'funnel',
       arrowType: 'block',
       arrowWeight: 2,
-      colorMode: 'auto', // 'auto' or 'manual'
+      colorMode: 'auto',
       baseColor: '#0284c7',
       colorStep: 15,
       items: [
@@ -109,49 +134,38 @@
     };
 
     Office.onReady(function(info) {
-      log('Office.js 準備完了');
+      log('Office.js 準備完了 (PowerPoint)');
       renderItems();
     });
 
     function log(msg, isError) {
       var el = document.getElementById('log');
       el.textContent = msg;
-      el.style.color = isError ? '#dc2626' : '#334155';
+      el.style.color = isError ? '#dc2626' : 'var(--text-sub)';
+      el.style.fontWeight = isError ? 'bold' : 'normal';
     }
 
-    // 基本カラーから明度を調整する関数（スライダー用）
+    // 明度調整ロジック
     function adjustColorBrightness(hex, stepIndex, stepValue) {
       var amount = stepIndex * stepValue;
       hex = hex.replace('#', '');
       if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
-      
       var num = parseInt(hex, 16);
-      var r = (num >> 16) + amount;
-      if (r > 255) r = 255; else if (r < 0) r = 0;
-      var g = ((num >> 8) & 0x00FF) + amount;
-      if (g > 255) g = 255; else if (g < 0) g = 0;
-      var b = (num & 0x0000FF) + amount;
-      if (b > 255) b = 255; else if (b < 0) b = 0;
-      
+      var r = (num >> 16) + amount; if (r > 255) r = 255; else if (r < 0) r = 0;
+      var g = ((num >> 8) & 0x00FF) + amount; if (g > 255) g = 255; else if (g < 0) g = 0;
+      var b = (num & 0x0000FF) + amount; if (b > 255) b = 255; else if (b < 0) b = 0;
       return '#' + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
     }
 
-    // 挿入時に最終的な色を決定する関数
     function getItemHex(item, index) {
-      if (state.colorMode === 'auto') {
-        return adjustColorBrightness(state.baseColor, index, state.colorStep);
-      } else {
-        return item.color || '#0284c7';
-      }
+      return state.colorMode === 'auto' ? adjustColorBrightness(state.baseColor, index, state.colorStep) : (item.color || '#0284c7');
     }
 
-    // テキストカラーを背景色に合わせて白黒反転
     function getTextColor(hex) {
       if (!hex) return '#FFFFFF';
       var c = hex.replace('#', '');
       var r = parseInt(c.substr(0, 2), 16), g = parseInt(c.substr(2, 2), 16), b = parseInt(c.substr(4, 2), 16);
-      var brightness = (r * 299 + g * 587 + b * 114) / 1000;
-      return brightness > 160 ? '#000000' : '#FFFFFF';
+      return ((r * 299 + g * 587 + b * 114) / 1000) > 160 ? '#000000' : '#FFFFFF';
     }
 
     function onTypeChange(val) {
@@ -161,7 +175,7 @@
 
     function changeColorMode(mode) {
       state.colorMode = mode;
-      document.getElementById('autoColorArea').style.display = (mode === 'auto') ? 'block' : 'none';
+      document.getElementById('autoColorArea').style.display = (mode === 'auto') ? 'flex' : 'none';
       renderItems();
     }
 
@@ -171,37 +185,28 @@
       state.items.forEach(function(item, idx) {
         var row = document.createElement('div');
         row.className = 'item-row';
+        var currentHex = getItemHex(item, idx);
         
-        // モードに応じて個別のカラーピッカーの表示/非表示を切り替え（自動モード時はプレビュー表示）
-        var previewHex = getItemHex(item, idx);
-        if (state.colorMode === 'manual') {
-          row.innerHTML += `<input type="color" value="${previewHex}" onchange="state.items[${idx}].color=this.value">`;
-        } else {
-          row.innerHTML += `<div style="width:30px; height:30px; background-color:${previewHex}; border-radius:4px; border:1px solid #cbd5e1;"></div>`;
-        }
+        // モード切替時のUI（手動時はカラーピッカー、自動時はインジケーター）
+        var colorUI = state.colorMode === 'manual' 
+          ? `<input type="color" class="color-picker-small" value="${currentHex}" onchange="state.items[${idx}].color=this.value">`
+          : `<div class="color-indicator" style="background-color: ${currentHex};"></div>`;
 
-        row.innerHTML += `
-          <input type="text" placeholder="タイトル" value="${item.title || ''}" oninput="state.items[${idx}].title=this.value">
-          <input type="text" placeholder="説明" value="${item.desc || ''}" oninput="state.items[${idx}].desc=this.value">
-          <button class="btn btn-danger" onclick="removeItem(${idx})">×</button>
+        row.innerHTML = `
+          ${colorUI}
+          <div class="item-inputs">
+            <input type="text" placeholder="タイトル" value="${item.title || ''}" oninput="state.items[${idx}].title=this.value">
+            <input type="text" placeholder="説明 (任意)" value="${item.desc || ''}" oninput="state.items[${idx}].desc=this.value">
+          </div>
+          <button class="btn-delete" onclick="removeItem(${idx})">×</button>
         `;
         container.appendChild(row);
       });
     }
 
-    function addItem() {
-      state.items.push({ title: '新規項目', desc: '', color: '#0284c7' });
-      renderItems();
-    }
+    function addItem() { state.items.push({ title: '', desc: '', color: '#0284c7' }); renderItems(); }
+    function removeItem(idx) { if (state.items.length > 1) { state.items.splice(idx, 1); renderItems(); } }
 
-    function removeItem(idx) {
-      if (state.items.length > 1) {
-        state.items.splice(idx, 1);
-        renderItems();
-      }
-    }
-
-    // 1. PowerPoint APIの正しい図形定数を安全に取得するヘルパー
     function getShapeType(key) {
       if (typeof PowerPoint !== 'undefined' && PowerPoint.GeometricShapeType) {
         var GST = PowerPoint.GeometricShapeType;
@@ -212,7 +217,6 @@
       return fallbackMap[key] || 'Rectangle';
     }
 
-    // 2. テキスト設定ヘルパー
     function addText(shape, text, color, size) {
       if (shape && shape.textFrame && shape.textFrame.textRange) {
         shape.textFrame.textRange.text = text || '';
@@ -222,11 +226,9 @@
       }
     }
 
-    // 3. PowerPointスライドへの挿入メイン処理（安定稼働版）
     async function insertToSlide() {
       var btn = document.getElementById('btnInsert');
-      btn.disabled = true;
-      btn.textContent = '挿入中...';
+      if(btn) { btn.disabled = true; btn.textContent = '挿入中...'; }
       log('PowerPointへ挿入中...');
 
       try {
@@ -234,63 +236,45 @@
           await PowerPoint.run(async (context) => {
             const slide = context.presentation.getSelectedSlides().getItemAt(0);
             const shapes = slide.shapes;
+            var count = state.items.length, startLeft = 80, startTop = 120, totalWidth = 600, totalHeight = 300;
 
-            var count = state.items.length;
-            var startLeft = 80, startTop = 120, totalWidth = 600, totalHeight = 300;
-
-            // 1. パーチェスファネル
             if (state.type === 'funnel') {
               var layerH = totalHeight / count, topW = 540, botW = 150;
               for (var i = 0; i < count; i++) {
-                var item = state.items[i], hex = getItemHex(item, i);
-                var curW = topW - (topW - botW) * (i / (count > 1 ? count - 1 : 1)), curLeft = startLeft + (totalWidth - curW) / 2;
+                var item = state.items[i], hex = getItemHex(item, i), curW = topW - (topW - botW) * (i / (count > 1 ? count - 1 : 1)), curLeft = startLeft + (totalWidth - curW) / 2;
                 var shape = shapes.addGeometricShape(getShapeType('trapezoid'), { left: curLeft, top: startTop + i * layerH, width: curW, height: layerH - 3 });
                 shape.fill.setSolidColor(hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 1.5; shape.rotation = 180;
                 var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: curLeft, top: startTop + i * layerH, width: curW, height: layerH - 3 });
-                txtBox.fill.clear(); txtBox.lineFormat.visible = false;
-                addText(txtBox, item.title + (item.desc ? "\n" + item.desc : ""), getTextColor(hex), 13);
+                txtBox.fill.clear(); txtBox.lineFormat.visible = false; addText(txtBox, item.title + (item.desc ? "\n" + item.desc : ""), getTextColor(hex), 13);
               }
-
-            // 2. シェブロン
             } else if (state.type === 'chevron') {
               var gap = 10, boxW = (totalWidth - (count - 1) * gap) / count;
               for (var i = 0; i < count; i++) {
                 var item = state.items[i], hex = getItemHex(item, i);
                 var shape = shapes.addGeometricShape(getShapeType('chevron'), { left: startLeft + i * (boxW + gap), top: startTop + 40, width: boxW, height: 180 });
-                shape.fill.setSolidColor(hex); shape.lineFormat.visible = false;
-                addText(shape, item.title + (item.desc ? "\n" + item.desc : ""), getTextColor(hex), 13);
+                shape.fill.setSolidColor(hex); shape.lineFormat.visible = false; addText(shape, item.title + (item.desc ? "\n" + item.desc : ""), getTextColor(hex), 13);
               }
-
-            // 3. プロセス（角丸＋矢印）
             } else if (state.type === 'process_arrow') {
               var gap = 10, arrowW = 20, boxW = (totalWidth - (count - 1) * (gap * 2 + arrowW)) / count;
               for (var i = 0; i < count; i++) {
                 var item = state.items[i], hex = getItemHex(item, i), curLeft = startLeft + i * (boxW + gap * 2 + arrowW);
                 var shape = shapes.addGeometricShape(getShapeType('roundRectangle'), { left: curLeft, top: startTop + 60, width: boxW, height: 120 });
-                shape.fill.setSolidColor(hex); shape.lineFormat.visible = false;
-                addText(shape, item.title + (item.desc ? "\n" + item.desc : ""), getTextColor(hex), 13);
+                shape.fill.setSolidColor(hex); shape.lineFormat.visible = false; addText(shape, item.title + (item.desc ? "\n" + item.desc : ""), getTextColor(hex), 13);
                 if (i < count - 1) {
                   var arrow = shapes.addGeometricShape(getShapeType('rightArrow'), { left: curLeft + boxW + gap, top: startTop + 105, width: arrowW, height: 30 });
                   arrow.fill.setSolidColor("#6F6F6F"); arrow.lineFormat.visible = false;
                 }
               }
-
-            // 4. 単体カスタム矢印
             } else if (state.type === 'standalone_arrow') {
               var gap = 15, layerH = (totalHeight - (count - 1) * gap) / count, at = state.arrowType || 'block';
               for (var i = 0; i < count; i++) {
-                var item = state.items[i], hex = getItemHex(item, i);
-                var sType = getShapeType('rightArrow'), w = totalWidth, h = layerH, t = startTop + i * (layerH + gap);
-                if (at === 'line') { h = Math.max(8, state.arrowWeight * 4); t = t + (layerH - h) / 2; } 
-                else if (at === 'curved_up') { sType = getShapeType('curvedUpArrow'); }
+                var item = state.items[i], hex = getItemHex(item, i), sType = getShapeType('rightArrow'), w = totalWidth, h = layerH, t = startTop + i * (layerH + gap);
+                if (at === 'line') { h = Math.max(8, state.arrowWeight * 4); t = t + (layerH - h) / 2; } else if (at === 'curved_up') { sType = getShapeType('curvedUpArrow'); }
                 var shape = shapes.addGeometricShape(sType, { left: startLeft, top: t, width: w, height: h });
                 shape.fill.setSolidColor(hex); shape.lineFormat.visible = false;
                 var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: startLeft, top: startTop + i * (layerH + gap), width: w, height: layerH });
-                txtBox.fill.clear(); txtBox.lineFormat.visible = false;
-                addText(txtBox, item.title + (item.desc ? " - " + item.desc : ""), (at === 'line') ? '#000000' : getTextColor(hex), 14);
+                txtBox.fill.clear(); txtBox.lineFormat.visible = false; addText(txtBox, item.title + (item.desc ? " - " + item.desc : ""), (at === 'line') ? '#000000' : getTextColor(hex), 14);
               }
-
-            // 5. ピラミッド
             } else if (state.type === 'pyramid') {
               var botW = 560, layerH = totalHeight / count;
               for (var i = count - 1; i >= 0; i--) {
@@ -298,29 +282,20 @@
                 var shape = shapes.addGeometricShape(getShapeType('triangle'), { left: startLeft + (totalWidth - curW) / 2, top: startTop, width: curW, height: curH });
                 shape.fill.setSolidColor(hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 2;
                 var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: startLeft, top: startTop + i * layerH, width: totalWidth, height: layerH });
-                txtBox.fill.clear(); txtBox.lineFormat.visible = false;
-                addText(txtBox, item.title, getTextColor(hex), 14);
+                txtBox.fill.clear(); txtBox.lineFormat.visible = false; addText(txtBox, item.title, getTextColor(hex), 14);
               }
-
-            // 6. 2x2 マトリクス
             } else if (state.type === 'matrix') {
-              var gap = 15, bw = (totalWidth - gap) / 2, bh = 140;
-              var pos = [{l:startLeft+bw+gap, t:startTop}, {l:startLeft, t:startTop}, {l:startLeft, t:startTop+bh+gap}, {l:startLeft+bw+gap, t:startTop+bh+gap}];
+              var gap = 15, bw = (totalWidth - gap) / 2, bh = 140, pos = [{l:startLeft+bw+gap, t:startTop}, {l:startLeft, t:startTop}, {l:startLeft, t:startTop+bh+gap}, {l:startLeft+bw+gap, t:startTop+bh+gap}];
               for (var i = 0; i < Math.min(count, 4); i++) {
                 var item = state.items[i], hex = getItemHex(item, i), p = pos[i];
                 var shape = shapes.addGeometricShape(getShapeType('roundRectangle'), { left: p.l, top: p.t, width: bw, height: bh });
-                shape.fill.setSolidColor(hex); shape.lineFormat.visible = false;
-                addText(shape, item.title + (item.desc ? "\n" + item.desc : ""), getTextColor(hex), 13);
+                shape.fill.setSolidColor(hex); shape.lineFormat.visible = false; addText(shape, item.title + (item.desc ? "\n" + item.desc : ""), getTextColor(hex), 13);
               }
-
-            // 7. ベン図
             } else if (state.type === 'venn') {
-              var r = 200, ac = Math.min(count, 3), cx = startLeft + totalWidth / 2, cy = startTop + totalHeight / 2;
-              var pos = ac >= 3 ? [ { x: cx - 50, y: cy - 35 }, { x: cx + 50, y: cy - 35 }, { x: cx, y: cy + 50 } ] : [ { x: cx - 70, y: cy }, { x: cx + 70, y: cy } ];
+              var r = 200, ac = Math.min(count, 3), cx = startLeft + totalWidth / 2, cy = startTop + totalHeight / 2, pos = ac >= 3 ? [ { x: cx - 50, y: cy - 35 }, { x: cx + 50, y: cy - 35 }, { x: cx, y: cy + 50 } ] : [ { x: cx - 70, y: cy }, { x: cx + 70, y: cy } ];
               for (var i = 0; i < ac; i++) {
-                var hex = getItemHex(state.items[i], i);
                 var shape = shapes.addGeometricShape(getShapeType('ellipse'), { left: pos[i].x - r/2, top: pos[i].y - r/2, width: r, height: r });
-                shape.fill.setSolidColor(hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 2;
+                shape.fill.setSolidColor(getItemHex(state.items[i], i)); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 2;
               }
               var overlapBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: cx - 50, top: cy - 15, width: 100, height: 30 });
               overlapBox.fill.clear(); overlapBox.lineFormat.visible = false; addText(overlapBox, "[重なり]", "#000000", 12);
@@ -329,8 +304,6 @@
                 var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: txtPos[i].x - 50, top: txtPos[i].y - 15, width: 100, height: 30 });
                 txtBox.fill.clear(); txtBox.lineFormat.visible = false; addText(txtBox, state.items[i].title, "#000000", 13);
               }
-
-            // 8. カラム比較
             } else if (state.type === 'comparison') {
               var gap = 20, colW = (totalWidth - (count - 1) * gap) / count;
               for (var i = 0; i < count; i++) {
@@ -340,22 +313,16 @@
                 var body = shapes.addGeometricShape(getShapeType('rectangle'), { left: curLeft, top: startTop+45, width: colW, height: totalHeight-45 });
                 body.fill.setSolidColor("#FAFAFA"); body.lineFormat.color = hex; body.lineFormat.weight = 2; addText(body, item.desc, "#000000", 12);
               }
-
-            // 9. 循環ループ
             } else if (state.type === 'cycle') {
-              var cx = startLeft + totalWidth / 2, cy = startTop + totalHeight / 2, r = 100;
-              var track = shapes.addGeometricShape(getShapeType('ellipse'), { left: cx - r, top: cy - r, width: r * 2, height: r * 2 });
+              var cx = startLeft + totalWidth / 2, cy = startTop + totalHeight / 2, r = 100, track = shapes.addGeometricShape(getShapeType('ellipse'), { left: cx - r, top: cy - r, width: r * 2, height: r * 2 });
               track.fill.clear(); track.lineFormat.color = "#CBD5E1"; track.lineFormat.weight = 4;
               for (var i = 0; i < count; i++) {
-                var item = state.items[i], hex = getItemHex(item, i), angle = (i * 2 * Math.PI / count) - (Math.PI / 2);
-                var nx = cx + r * Math.cos(angle), ny = cy + r * Math.sin(angle);
+                var item = state.items[i], hex = getItemHex(item, i), angle = (i * 2 * Math.PI / count) - (Math.PI / 2), nx = cx + r * Math.cos(angle), ny = cy + r * Math.sin(angle);
                 var shape = shapes.addGeometricShape(getShapeType('ellipse'), { left: nx - 30, top: ny - 30, width: 60, height: 60 });
                 shape.fill.setSolidColor(hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 2;
                 var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: nx - 60, top: ny + 32, width: 120, height: 30 });
                 txtBox.fill.clear(); txtBox.lineFormat.visible = false; addText(txtBox, item.title, "#000000", 12);
               }
-
-            // 10. 同心円
             } else if (state.type === 'onion') {
               var cx = startLeft + totalWidth / 2 - 40, cy = startTop + totalHeight / 2, maxR = Math.min(totalWidth / 2, totalHeight / 2);
               for (var i = count - 1; i >= 0; i--) {
@@ -365,16 +332,12 @@
                 var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: cx - cr, top: cy - cr + 5, width: cr * 2, height: 25 });
                 txtBox.fill.clear(); txtBox.lineFormat.visible = false; addText(txtBox, state.items[i].title, getTextColor(hex), 12);
               }
-
-            // 11. タイムライン
             } else if (state.type === 'timeline') {
-              var lineY = startTop + totalHeight / 2;
-              var line = shapes.addGeometricShape(getShapeType('rightArrow'), { left: startLeft, top: lineY - 8, width: totalWidth, height: 16 });
+              var lineY = startTop + totalHeight / 2, line = shapes.addGeometricShape(getShapeType('rightArrow'), { left: startLeft, top: lineY - 8, width: totalWidth, height: 16 });
               line.fill.setSolidColor("#CBD5E1"); line.lineFormat.visible = false;
               var stepW = totalWidth / (count + 0.5);
               for (var i = 0; i < count; i++) {
-                var item = state.items[i], hex = getItemHex(item, i), x = startLeft + 35 + i * stepW, isTop = (i % 2 === 0);
-                var stemH = 45, stemY = isTop ? lineY - stemH : lineY;
+                var item = state.items[i], hex = getItemHex(item, i), x = startLeft + 35 + i * stepW, isTop = (i % 2 === 0), stemH = 45, stemY = isTop ? lineY - stemH : lineY;
                 var stem = shapes.addGeometricShape(getShapeType('rectangle'), { left: x - 1, top: stemY, width: 2, height: stemH });
                 stem.fill.setSolidColor("#94A3B8"); stem.lineFormat.visible = false;
                 var dot = shapes.addGeometricShape(getShapeType('ellipse'), { left: x - 10, top: lineY - 10, width: 20, height: 20 });
@@ -395,8 +358,7 @@
       } catch (e) {
         log('挿入エラー: ' + e.message, true);
       } finally {
-        btn.disabled = false;
-        btn.textContent = 'PowerPointに挿入';
+        if(btn) { btn.disabled = false; btn.textContent = 'PowerPointに挿入'; }
       }
     }
   </script>
