@@ -83,7 +83,6 @@
     </select>
   </div>
 
-  <!-- 矢印種類等の詳細設定エリア -->
   <div class="section" id="detailSettings" style="display:none;"></div>
 
   <div class="section">
@@ -103,7 +102,7 @@
   </div>
 
   <script>
-    // --- Googleスライド版のUI・プレビュー・カラー計算ロジック（完全維持） ---
+    // --- Googleスライド版のUI・プレビュー・カラー計算ロジック ---
     function log(msg, isError) {
       var el = document.getElementById('logArea');
       el.innerHTML = '<span style="color:' + (isError ? '#fca5a5' : '#86efac') + ';">[' + (isError ? 'エラー' : '情報') + '] ' + msg + '</span>';
@@ -354,31 +353,22 @@
     function getShapeType(key) {
       if (typeof PowerPoint !== 'undefined' && PowerPoint.GeometricShapeType) {
         var GST = PowerPoint.GeometricShapeType;
-        var map = { 
-          'rectangle': GST.rectangle, 
-          'roundRectangle': GST.roundRectangle, 
-          'trapezoid': GST.trapezoid, 
-          'chevron': GST.chevron, 
-          'rightArrow': GST.rightArrow, 
-          // 【修正】滑らかな曲線を描く「右カーブ矢印」を指定
-          'curvedUpArrow': GST.curvedRightArrow || 'CurvedRightArrow', 
-          'triangle': GST.triangle, 
-          'ellipse': GST.ellipse 
-        };
+        // 曲線矢印（curvedRightArrow）を確実に指定
+        var map = { 'rectangle': GST.rectangle, 'roundRectangle': GST.roundRectangle, 'trapezoid': GST.trapezoid, 'chevron': GST.chevron, 'rightArrow': GST.rightArrow, 'curvedUpArrow': GST.curvedRightArrow || 'CurvedRightArrow', 'triangle': GST.triangle, 'ellipse': GST.ellipse };
         if (map[key]) return map[key];
       }
-      var fallbackMap = { 
-        'rectangle': 'Rectangle', 
-        'roundRectangle': 'RoundRectangle', 
-        'trapezoid': 'Trapezoid', 
-        'chevron': 'Chevron', 
-        'rightArrow': 'RightArrow', 
-        // 【修正】フォールバックも「右カーブ矢印」に変更
-        'curvedUpArrow': 'CurvedRightArrow', 
-        'triangle': 'Triangle', 
-        'ellipse': 'Ellipse' 
-      };
+      var fallbackMap = { 'rectangle': 'Rectangle', 'roundRectangle': 'RoundRectangle', 'trapezoid': 'Trapezoid', 'chevron': 'Chevron', 'rightArrow': 'RightArrow', 'curvedUpArrow': 'CurvedRightArrow', 'triangle': 'Triangle', 'ellipse': 'Ellipse' };
       return fallbackMap[key] || 'Rectangle';
+    }
+
+    // ★誤って消えていた addText 関数を復元
+    function addText(shape, text, color, size) {
+      if (shape && shape.textFrame && shape.textFrame.textRange) {
+        shape.textFrame.textRange.text = text || '';
+        if (color) shape.textFrame.textRange.font.color = color;
+        shape.textFrame.textRange.font.bold = true;
+        if (size) shape.textFrame.textRange.font.size = size;
+      }
     }
 
     // --- PowerPointスライドへの挿入メイン処理 ---
