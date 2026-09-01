@@ -435,13 +435,22 @@ async function insertToSlide() {
         var startLeft = 80, startTop = 120;
         var totalWidth = 600, totalHeight = 300;
 
-        // テキストを安全に設定する関数（エラー原因になる配置プロパティを排除）
+// テキストを安全に設定し、可能な限り中央揃えを試みる関数
         function addText(shape, text, color, size) {
-          if (shape && shape.textFrame && shape.textFrame.textRange) {
-            shape.textFrame.textRange.text = text;
-            shape.textFrame.textRange.font.color = color;
-            shape.textFrame.textRange.font.bold = true;
-            if (size) shape.textFrame.textRange.font.size = size;
+          if (shape && shape.textFrame) {
+            // APIの制限の中で、上下左右中央揃え（MiddleCentered）を試行する
+            try {
+              shape.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middleCentered;
+            } catch(e) {
+              try { shape.textFrame.verticalAlignment = "MiddleCentered"; } catch(e2) {}
+            }
+
+            if (shape.textFrame.textRange) {
+              shape.textFrame.textRange.text = text;
+              shape.textFrame.textRange.font.color = color;
+              shape.textFrame.textRange.font.bold = true;
+              if (size) shape.textFrame.textRange.font.size = size;
+            }
           }
         }
 
