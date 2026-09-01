@@ -7,26 +7,23 @@
   <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
   <style>
     :root {
-      --primary: #c24127;
-      --bg-color: #f5f7f9;
+      --primary: #c24127; /* メインのオレンジレッド */
+      --bg-color: #f8fafc;
       --border-color: #e2e8f0;
       --text-main: #1e293b;
       --text-sub: #475569;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background-color: var(--bg-color); padding: 20px; color: var(--text-main); }
     
-    /* ヘッダー */
     h2 { font-size: 18px; font-weight: bold; padding-bottom: 8px; border-bottom: 2px solid var(--primary); margin-bottom: 20px; }
     
-    /* 共通ラベル */
     .section-title { font-size: 13px; font-weight: bold; margin-bottom: 8px; color: var(--text-main); }
     
-    /* コントロール（選択・入力） */
-    select, input[type="text"] { width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; color: var(--text-main); background: #fff; }
-    select { margin-bottom: 20px; appearance: auto; }
+    select, input[type="text"] { width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; color: var(--text-main); background: #fff; appearance: auto; }
+    select { margin-bottom: 20px; }
     
-    /* カラー設定エリア（スクショの世界観に合わせてデザイン） */
+    /* カラー設定エリア */
     .color-settings-box { background: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 20px; }
     .color-radio-group { display: flex; gap: 16px; margin-bottom: 12px; font-size: 12px; color: var(--text-sub); }
     .color-radio-group label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
@@ -36,31 +33,26 @@
     input[type="range"] { width: 100%; margin-bottom: 4px; accent-color: var(--primary); }
     .range-labels { display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; }
 
-    /* 要素追加ボタン */
-    .btn-add { background: #e2e8f0; color: var(--text-sub); border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; margin-bottom: 12px; display: inline-flex; align-items: center; gap: 4px; }
+    /* 要素一覧エリア */
+    .btn-add { background: #e2e8f0; color: var(--text-sub); border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; margin-bottom: 12px; display: inline-flex; align-items: center; }
     .btn-add:hover { background: #cbd5e1; }
 
-    /* 要素リスト（スクショ完全再現） */
     .item-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
     .item-row { background: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; display: flex; align-items: center; gap: 10px; }
     
-    /* カラーインジケーター（スクショの左端の四角） */
     .color-indicator { width: 16px; height: 10px; border-radius: 2px; flex-shrink: 0; }
     .color-picker-small { width: 24px; height: 24px; padding: 0; border: none; border-radius: 4px; cursor: pointer; background: transparent; flex-shrink: 0; }
 
-    /* 入力欄（タイトルと説明） */
     .item-inputs { flex: 1; display: flex; gap: 8px; }
     
-    /* 削除ボタン（赤い×ボタン） */
     .btn-delete { background: #ef4444; color: #fff; border: none; border-radius: 4px; width: 28px; height: 28px; flex-shrink: 0; cursor: pointer; font-size: 16px; font-weight: bold; display: flex; align-items: center; justify-content: center; }
     .btn-delete:hover { background: #dc2626; }
 
-    /* 挿入ボタン（スクショの大きなオレンジボタン） */
+    /* 挿入ボタンとログ */
     .btn-insert { background: var(--primary); color: #fff; border: none; padding: 14px; width: 100%; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-bottom: 12px; }
     .btn-insert:hover { background: #a8351f; }
     .btn-insert:disabled { background: #94a3b8; cursor: not-allowed; }
 
-    /* ステータスログ（スクショの下部のグレーエリア） */
     .status-log { background: #e2e8f0; color: var(--text-sub); padding: 12px; border-radius: 6px; font-size: 12px; text-align: left; }
   </style>
 </head>
@@ -114,17 +106,13 @@
   <div id="itemList" class="item-list"></div>
 
   <button id="btnInsert" class="btn-insert" onclick="insertToSlide()">PowerPointに挿入</button>
-  <div id="log" class="status-log">準備完了</div>
+  <div id="log" class="status-log">Office.js 準備完了 (PowerPoint)</div>
 
   <script>
-    // State 管理
+    // 状態管理
     var state = {
-      type: 'funnel',
-      arrowType: 'block',
-      arrowWeight: 2,
-      colorMode: 'auto',
-      baseColor: '#0284c7',
-      colorStep: 15,
+      type: 'funnel', arrowType: 'block', arrowWeight: 2,
+      colorMode: 'auto', baseColor: '#0284c7', colorStep: 15,
       items: [
         { title: '認知', desc: 'ブランドの認知拡大', color: '#0284c7' },
         { title: '興味', desc: '製品への関心喚起', color: '#0d9488' },
@@ -133,10 +121,7 @@
       ]
     };
 
-    Office.onReady(function(info) {
-      log('Office.js 準備完了 (PowerPoint)');
-      renderItems();
-    });
+    Office.onReady(function(info) { renderItems(); });
 
     function log(msg, isError) {
       var el = document.getElementById('log');
@@ -145,20 +130,20 @@
       el.style.fontWeight = isError ? 'bold' : 'normal';
     }
 
-    // 明度調整ロジック
-    function adjustColorBrightness(hex, stepIndex, stepValue) {
+    // 色の計算ロジック
+    function adjustBrightness(hex, stepIndex, stepValue) {
       var amount = stepIndex * stepValue;
       hex = hex.replace('#', '');
       if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
       var num = parseInt(hex, 16);
-      var r = (num >> 16) + amount; if (r > 255) r = 255; else if (r < 0) r = 0;
-      var g = ((num >> 8) & 0x00FF) + amount; if (g > 255) g = 255; else if (g < 0) g = 0;
-      var b = (num & 0x0000FF) + amount; if (b > 255) b = 255; else if (b < 0) b = 0;
+      var r = Math.min(255, Math.max(0, (num >> 16) + amount));
+      var g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amount));
+      var b = Math.min(255, Math.max(0, (num & 0x0000FF) + amount));
       return '#' + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
     }
 
     function getItemHex(item, index) {
-      return state.colorMode === 'auto' ? adjustColorBrightness(state.baseColor, index, state.colorStep) : (item.color || '#0284c7');
+      return state.colorMode === 'auto' ? adjustBrightness(state.baseColor, index, state.colorStep) : (item.color || '#0284c7');
     }
 
     function getTextColor(hex) {
@@ -168,6 +153,7 @@
       return ((r * 299 + g * 587 + b * 114) / 1000) > 160 ? '#000000' : '#FFFFFF';
     }
 
+    // UI操作
     function onTypeChange(val) {
       state.type = val;
       document.getElementById('arrowSubOptions').style.display = (val === 'standalone_arrow') ? 'block' : 'none';
@@ -187,7 +173,6 @@
         row.className = 'item-row';
         var currentHex = getItemHex(item, idx);
         
-        // モード切替時のUI（手動時はカラーピッカー、自動時はインジケーター）
         var colorUI = state.colorMode === 'manual' 
           ? `<input type="color" class="color-picker-small" value="${currentHex}" onchange="state.items[${idx}].color=this.value">`
           : `<div class="color-indicator" style="background-color: ${currentHex};"></div>`;
@@ -207,14 +192,15 @@
     function addItem() { state.items.push({ title: '', desc: '', color: '#0284c7' }); renderItems(); }
     function removeItem(idx) { if (state.items.length > 1) { state.items.splice(idx, 1); renderItems(); } }
 
+    // PowerPoint描画用ヘルパー
     function getShapeType(key) {
+      var fallback = { 'rectangle': 'Rectangle', 'roundRectangle': 'RoundRectangle', 'trapezoid': 'Trapezoid', 'chevron': 'Chevron', 'rightArrow': 'RightArrow', 'curvedUpArrow': 'BentUpArrow', 'triangle': 'Triangle', 'ellipse': 'Ellipse' };
       if (typeof PowerPoint !== 'undefined' && PowerPoint.GeometricShapeType) {
         var GST = PowerPoint.GeometricShapeType;
         var map = { 'rectangle': GST.rectangle, 'roundRectangle': GST.roundRectangle, 'trapezoid': GST.trapezoid, 'chevron': GST.chevron, 'rightArrow': GST.rightArrow, 'curvedUpArrow': GST.bentUpArrow || GST.curvedUpArrow, 'triangle': GST.triangle, 'ellipse': GST.ellipse };
         if (map[key]) return map[key];
       }
-      var fallbackMap = { 'rectangle': 'Rectangle', 'roundRectangle': 'RoundRectangle', 'trapezoid': 'Trapezoid', 'chevron': 'Chevron', 'rightArrow': 'RightArrow', 'curvedUpArrow': 'BentUpArrow', 'triangle': 'Triangle', 'ellipse': 'Ellipse' };
-      return fallbackMap[key] || 'Rectangle';
+      return fallback[key] || 'Rectangle';
     }
 
     function addText(shape, text, color, size) {
@@ -226,6 +212,7 @@
       }
     }
 
+    // PowerPointへの挿入実行
     async function insertToSlide() {
       var btn = document.getElementById('btnInsert');
       if(btn) { btn.disabled = true; btn.textContent = '挿入中...'; }
@@ -352,8 +339,6 @@
           });
 
           log('✔ 挿入完了！図形を全選択して「Cmd + E」でテキストを中央揃えにしてください。');
-        } else {
-          log('PowerPoint環境外のため実行できません。', true);
         }
       } catch (e) {
         log('挿入エラー: ' + e.message, true);
