@@ -37,7 +37,7 @@
     .btn-del { background: #ef4444; color: #fff; border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-size: 10px; }
     
     .detail-box { background: #1e293b; padding: 6px; border-radius: 4px; border: 1px solid #334155; margin-bottom: 6px; }
-    .notice { font-size: 9px; color: #94a3b8; margin-top: 4px; }
+    .notice { font-size: 9px; color: #94a3b8; margin-top: 4px; line-height: 1.4; }
     #logArea { margin-top: 6px; padding: 6px; border-radius: 4px; font-size: 10px; background: #1e293b; border: 1px solid #334155; color: #cbd5e1; max-height: 70px; overflow-y: auto; word-break: break-all; }
   </style>
 </head>
@@ -61,10 +61,11 @@
   </div>
 
   <div class="section">
-    <span class="label">2. フレームワーク (全11種類)</span>
+    <span class="label">2. フレームワーク (全12種類)</span>
     <select id="typeSelect" onchange="changeType(this.value)">
       <optgroup label="プロセス・段階">
-        <option value="funnel">1. パーチェスファネル（台形重ね）</option>
+        <option value="funnel_marketing">1. マーケティングファネル (完成系)</option>
+        <option value="funnel">1. パーチェスファネル (2〜6段)</option>
         <option value="chevron">2. シェブロン（横ステップ）</option>
         <option value="process_arrow">3. 矢印付きプロセス</option>
         <option value="standalone_arrow">4. 単体カスタム矢印</option>
@@ -95,7 +96,10 @@
   </div>
 
   <button id="btnInsert" onclick="insertToSlide()" class="btn-primary">スライドに挿入</button>
-  <div class="notice">※ 挿入した図形は選択して「Cmd + E」を押すと中央に揃います。</div>
+  <div class="notice">
+    ※ ファネル類は新しいスライドとして挿入されます。<br>
+    ※ その他の図形は挿入後、選択して「Cmd + E (Mac) / Ctrl + E (Win)」を押すと中央に揃います。
+  </div>
   
   <div class="section" style="margin-top:8px;">
     <span class="label">ステータス・ログ</span>
@@ -103,14 +107,13 @@
   </div>
 
   <script>
-    // --- Googleスライド版のUI・プレビュー・カラー計算ロジック（完全維持） ---
     function log(msg, isError) {
       var el = document.getElementById('logArea');
       el.innerHTML = '<span style="color:' + (isError ? '#fca5a5' : '#86efac') + ';">[' + (isError ? 'エラー' : '情報') + '] ' + msg + '</span>';
     }
 
     var state = {
-      theme: 'corporate', type: 'funnel', arrowType: 'block', arrowWeight: 3,
+      theme: 'corporate', type: 'funnel_marketing', arrowType: 'block', arrowWeight: 3,
       items: [
         { title: '認知', desc: 'マスメディア・SNS', hue: 'gray', shade: 4 },
         { title: '興味・関心', desc: 'オウンドメディア訪問', hue: 'gray', shade: 4 },
@@ -164,6 +167,13 @@
 
     function changeType(val) {
       state.type = val;
+      if (val === 'matrix') {
+        while (state.items.length < 4) state.items.push({ title: '項目', desc: '説明', hue: 'gray', shade: 4 });
+        state.items = state.items.slice(0, 4);
+      }
+      if (val === 'venn' && state.items.length > 3) {
+        state.items = state.items.slice(0, 3);
+      }
       renderDetailSettings();
       updateAll();
     }
@@ -191,9 +201,18 @@
       sec.style.display = html ? 'block' : 'none';
     }
 
-    function addItem() { state.items.push({ title: '新規項目', desc: '説明テキスト', hue: 'gray', shade: 4 }); updateAll(); }
+    function addItem() {
+      if (state.type === 'matrix') return;
+      if (state.type === 'venn' && state.items.length >= 3) { log('ベン図は最大3つまでです', true); return; }
+      if (state.type === 'funnel' && state.items.length >= 6) { log('ファネルは最大6段までです', true); return; }
+      state.items.push({ title: '新規項目', desc: '説明テキスト', hue: 'gray', shade: 4 }); 
+      updateAll(); 
+    }
+
     function removeItem(idx) {
-      if (state.items.length <= 1) { log('最低1つ必要です', true); return; }
+      if (state.type === 'matrix') return;
+      var minCount = (state.type === 'funnel') ? 2 : 1;
+      if (state.items.length <= minCount) { log('最低' + minCount + 'つ必要です', true); return; }
       state.items.splice(idx, 1); updateAll();
     }
 
@@ -204,12 +223,42 @@
 
     function renderInputs() {
       var container = document.getElementById('itemsContainer');
+      var btnAdd = document.querySelector('.btn-add');
+      var t = state.type;
+
+      var isMarketing = (t === 'funnel_marketing');
+      var isMatrix = (t === 'matrix');
+      var isVenn = (t === 'venn');
+      var noText = (t === 'standalone_arrow');
+      var noDesc = (isVenn || t === 'cycle' || noText || isMarketing);
+
+      if (isMarketing) {
+        container.innerHTML = '<div class="card" style="text-align:center; padding:20px; color:#94a3b8; font-size:13px; line-height:1.6;">' +
+                              '<span style="color:#cbd5e1; font-weight:bold;">【マーケティングファネル】</span><br><br>' +
+                              '事前のテキスト・色の設定はありません。<br>' +
+                              'そのまま「スライドに挿入」を押し、<br>挿入後にスライド上で直接編集してください。</div>';
+        if (btnAdd) btnAdd.style.display = 'none';
+        return;
+      }
+
+      var hideAdd = false;
+      if (isMatrix) hideAdd = true;
+      if (isVenn && state.items.length >= 3) hideAdd = true;
+      if (t === 'funnel' && state.items.length >= 6) hideAdd = true;
+      if (btnAdd) btnAdd.style.display = hideAdd ? 'none' : 'block';
+
       var html = '';
       state.items.forEach(function(item, index) {
         var hue = item.hue;
+        var disableDel = isMatrix ? ' style="display:none;"' : '';
+        
+        var titleInput = noText ? '' : '<input type="text" value="' + escapeHtml(item.title) + '" oninput="updateTitle(' + index + ', this.value)" placeholder="タイトル">';
+        var descInput = noDesc ? '' : '<input type="text" value="' + escapeHtml(item.desc) + '" oninput="updateDesc(' + index + ', this.value)" placeholder="説明文">';
+        var textAreas = noText ? '<div style="padding:6px; color:#94a3b8; font-size:11px;">※ この図形はテキストなしで挿入されます</div>' : (titleInput + descInput);
+
         html += '<div class="card">' +
           '<div class="card-head"><span>#' + (index + 1) + '</span>' +
-          '<button class="btn-del" onclick="removeItem(' + index + ')">削除</button></div>' +
+          '<button class="btn-del" onclick="removeItem(' + index + ')"' + disableDel + '>削除</button></div>' +
           '<div class="color-ui">' +
             '<div class="hue-btns">' +
               '<button class="btn-hue ' + (hue==='main'?'active':'') + '" onclick="setHue(' + index + ',\'main\')">メイン</button>' +
@@ -219,23 +268,31 @@
             '<div class="slider-row"><span style="font-size:10px;color:#cbd5e1;">濃</span>' +
               '<input type="range" min="0" max="4" value="' + item.shade + '" oninput="setShade(' + index + ', this.value)">' +
             '<span style="font-size:10px;color:#cbd5e1;">淡</span></div>' +
-          '</div>' +
-          '<input type="text" value="' + escapeHtml(item.title) + '" oninput="updateTitle(' + index + ', this.value)" placeholder="タイトル">' +
-          '<input type="text" value="' + escapeHtml(item.desc) + '" oninput="updateDesc(' + index + ', this.value)" placeholder="説明文">' +
-        '</div>';
+          '</div>' + textAreas + '</div>';
       });
       container.innerHTML = html;
     }
 
     function generateSVG() {
+      if (state.type === 'funnel_marketing') {
+        return '<div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100%; width:100%; text-align:center; padding:20px;">' +
+               '<span style="color:#0284c7; font-size:15px; font-weight:bold; margin-bottom:12px;">[ テンプレート参照 ]</span>' +
+               '<span style="color:#64748b; font-size:13px; line-height:1.6; font-weight:bold;">※ プレビューは省略されます<br><br>実際は専用の高品質テンプレートが<br>新しいスライドとして挿入されます。</span>' +
+               '</div>';
+      }
+
       var count = state.items.length, w = 1000, h = 500, inner = '';
+
       if (state.type === 'funnel') {
-        var topW = 600, botW = 200, layerH = h / count;
+        var topW = 200, botW = 600, layerH = h / count;
         state.items.forEach(function(item, i) {
-          var y1 = i * layerH, y2 = (i + 1) * layerH, w1 = topW - (topW - botW) * (i / count), w2 = topW - (topW - botW) * ((i + 1) / count);
-          var x1 = (w - w1)/2, x2 = x1 + w1, x3 = (w - w2)/2, x4 = x3 + w2, hex = getItemHex(item), txtCol = getTextColor(hex);
-          inner += '<polygon points="' + x1 + ',' + (y1+2) + ' ' + x2 + ',' + (y1+2) + ' ' + x4 + ',' + (y2-2) + ' ' + x3 + ',' + (y2-2) + '" fill="' + hex + '" stroke="#fff" stroke-width="2"/>';
-          inner += '<text x="' + ((x1+x2)/2) + '" y="' + ((y1+y2)/2+6) + '" fill="'+txtCol+'" font-size="18" font-weight="bold" text-anchor="middle">' + escapeHtml(item.title) + '</text>';
+          var y1 = i * layerH + 5, y2 = (i + 1) * layerH - 5;
+          var w1 = topW - (topW - botW) * (i / count);
+          var w2 = topW - (topW - botW) * ((i + 1) / count);
+          var x1 = (w - w1)/2, x2 = x1 + w1, x3 = (w - w2)/2, x4 = x3 + w2;
+          var hex = getItemHex(item), txtCol = getTextColor(hex);
+          inner += '<polygon points="' + x1 + ',' + y1 + ' ' + x2 + ',' + y1 + ' ' + x4 + ',' + y2 + ' ' + x3 + ',' + y2 + '" fill="' + hex + '" stroke="' + hex + '" stroke-width="8" stroke-linejoin="round"/>';
+          inner += '<text x="' + ((x1+x2)/2) + '" y="' + ((y1+y2)/2+6) + '" fill="'+txtCol+'" font-size="20" font-weight="bold" text-anchor="middle">' + escapeHtml(item.title) + '</text>';
         });
       } else if (state.type === 'chevron') {
         var gap = 16, bw = (w - 40 - (count-1)*gap) / count;
@@ -255,20 +312,17 @@
       } else if (state.type === 'standalone_arrow') {
         var at = state.arrowType || 'block', strokeW = state.arrowWeight * 3 + 2;
         state.items.forEach(function(item, i) {
-          var y = (h - count*120)/2 + i * 120, hex = getItemHex(item), txtCol = getTextColor(hex);
+          var y = (h - count*120)/2 + i * 120, hex = getItemHex(item);
           if (at === 'line') {
             inner += '<line x1="200" y1="'+(y+30)+'" x2="800" y2="'+(y+30)+'" stroke="'+hex+'" stroke-width="'+strokeW+'"/>';
             inner += '<polygon points="800,'+(y+30-strokeW*1.5)+' '+(800+strokeW*2)+','+(y+30)+' 800,'+(y+30+strokeW*1.5)+'" fill="'+hex+'"/>';
-            txtCol = '#070322';
           } else if (at === 'curved_up') {
             inner += '<path d="M 200 '+(y+100)+' Q 500 '+(y+100)+' 800 '+(y+20)+'" fill="none" stroke="'+hex+'" stroke-width="'+strokeW+'"/>';
             inner += '<polygon points="790,'+(y+10)+' '+(810+strokeW)+','+(y+15)+' 800,'+(y+30)+'" fill="'+hex+'"/>';
-            txtCol = '#070322'; 
           } else {
             var bh = state.arrowWeight * 8 + 20;
             inner += '<polygon points="200,'+(y+30-bh/2)+' 760,'+(y+30-bh/2)+' 760,'+(y+30-bh/2-10)+' 820,'+(y+30)+' 760,'+(y+30+bh/2+10)+' 760,'+(y+30+bh/2)+' 200,'+(y+30+bh/2)+'" fill="'+hex+'"/>';
           }
-          inner += '<text x="500" y="' + (y + 36) + '" fill="' + txtCol + '" font-size="18" font-weight="bold" text-anchor="middle">' + escapeHtml(item.title) + '</text>';
         });
       } else if (state.type === 'pyramid') {
         var botW = 600, layerH = h / count;
@@ -304,7 +358,7 @@
         }
         state.items.forEach(function(item, i) {
           var ty = cy - maxR + (i * (maxR * 2 / count)) + 20, tx = cx + maxR + 30;
-          inner += '<text x="' + tx + '" y="' + ty + '" fill="#ffffff" font-size="16" font-weight="bold">' + escapeHtml(item.title) + '</text>';
+          inner += '<text x="' + tx + '" y="' + ty + '" fill="#000000" font-size="16" font-weight="bold">' + escapeHtml(item.title) + '</text>';
         });
       } else if (state.type === 'venn') {
         var cy = h / 2, r = 120, ac = Math.min(count, 3);
@@ -316,7 +370,7 @@
           var nx = (ac>=3 && i===0) ? cx - 20 : (ac>=3 && i===1) ? cx + 20 : cx;
           inner += '<text x="' + nx + '" y="' + ny + '" fill="' + txtCol + '" font-size="16" font-weight="bold" text-anchor="middle">' + escapeHtml(state.items[i].title) + '</text>';
         }
-        inner += '<text x="'+(w/2)+'" y="'+(cy-10)+'" fill="#ffffff" font-size="14" font-weight="bold" text-anchor="middle">[重なり]</text>';
+        inner += '<text x="'+(w/2)+'" y="'+(cy-10)+'" fill="#000000" font-size="14" font-weight="bold" text-anchor="middle">[重なり]</text>';
       } else if (state.type === 'timeline') {
         inner += '<line x1="100" y1="250" x2="900" y2="250" stroke="#6F6F6F" stroke-width="6"/>';
         var stepW = 800 / Math.max(1, count - 1);
@@ -350,7 +404,6 @@
       } catch(e) { log('初期化エラー: ' + e.message, true); }
     });
 
-    // --- PowerPoint用 図形描画ヘルパー ---
     function getShapeType(key) {
       if (typeof PowerPoint !== 'undefined' && PowerPoint.GeometricShapeType) {
         var GST = PowerPoint.GeometricShapeType;
@@ -361,11 +414,11 @@
       return fallbackMap[key] || 'Rectangle';
     }
 
-    function addText(shape, text, color, size) {
+    function addText(shape, text, color, size, bold) {
       if (shape && shape.textFrame && shape.textFrame.textRange) {
         shape.textFrame.textRange.text = text || '';
         if (color) shape.textFrame.textRange.font.color = color;
-        shape.textFrame.textRange.font.bold = true;
+        shape.textFrame.textRange.font.bold = (bold !== undefined) ? bold : true;
         if (size) shape.textFrame.textRange.font.size = size;
       }
     }
@@ -380,131 +433,192 @@
         var h = getItemHex(item);
         return { title: item.title, desc: item.desc, hex: h, textColor: getTextColor(h) };
       });
+      var count = payloadItems.length;
 
       try {
         if (typeof PowerPoint !== 'undefined' && PowerPoint.run) {
           await PowerPoint.run(async (context) => {
-            const slide = context.presentation.getSelectedSlides().getItemAt(0);
-            const shapes = slide.shapes;
-            var count = payloadItems.length, startLeft = 80, startTop = 120, totalWidth = 600, totalHeight = 300;
+            
+            // ==========================================
+            // 1. ファネル系（Base64によるテンプレート挿入）
+            // ==========================================
+            if (state.type === 'funnel_marketing' || state.type === 'funnel') {
+              
+              // ▼▼▼ ここに準備したテンプレートのBase64文字列を設定します ▼▼▼
+              var templates = {
+                'funnel_marketing': "ここに完成系テンプレートのBase64文字列を貼り付けます",
+                'funnel_6': "ここに6段テンプレートのBase64文字列を貼り付けます",
+                'funnel_5': "...",
+                'funnel_4': "...",
+                'funnel_3': "...",
+                'funnel_2': "..."
+              };
+              
+              var b64Data = (state.type === 'funnel_marketing') ? templates['funnel_marketing'] : templates['funnel_' + count];
+              
+              if (!b64Data || b64Data.indexOf("ここに") !== -1) {
+                log('エラー: Base64テンプレートが設定されていません。コード内（html）の変数にBase64文字列を貼り付けてください。', true);
+                return;
+              }
 
-            if (state.type === 'funnel') {
-              var layerH = totalHeight / count, topW = 540, botW = 150;
-              for (var i = 0; i < count; i++) {
-                var item = payloadItems[i], curW = topW - (topW - botW) * (i / (count > 1 ? count - 1 : 1)), curLeft = startLeft + (totalWidth - curW) / 2;
-                var shape = shapes.addGeometricShape(getShapeType('trapezoid'), { left: curLeft, top: startTop + i * layerH, width: curW, height: layerH - 3 });
-                shape.fill.setSolidColor(item.hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 1.5; shape.rotation = 180;
-                var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: curLeft, top: startTop + i * layerH, width: curW, height: layerH - 3 });
-                txtBox.fill.clear(); txtBox.lineFormat.visible = false; addText(txtBox, item.title + (item.desc ? "\n" + item.desc : ""), item.textColor, 13);
-              }
-            } else if (state.type === 'chevron') {
-              var gap = 10, boxW = (totalWidth - (count - 1) * gap) / count;
-              for (var i = 0; i < count; i++) {
-                var item = payloadItems[i];
-                var shape = shapes.addGeometricShape(getShapeType('chevron'), { left: startLeft + i * (boxW + gap), top: startTop + 40, width: boxW, height: 180 });
-                shape.fill.setSolidColor(item.hex); shape.lineFormat.visible = false; addText(shape, item.title + (item.desc ? "\n" + item.desc : ""), item.textColor, 13);
-              }
-            } else if (state.type === 'process_arrow') {
-              var gap = 10, arrowW = 20, boxW = (totalWidth - (count - 1) * (gap * 2 + arrowW)) / count;
-              for (var i = 0; i < count; i++) {
-                var item = payloadItems[i], curLeft = startLeft + i * (boxW + gap * 2 + arrowW);
-                var shape = shapes.addGeometricShape(getShapeType('roundRectangle'), { left: curLeft, top: startTop + 60, width: boxW, height: 120 });
-                shape.fill.setSolidColor(item.hex); shape.lineFormat.visible = false; addText(shape, item.title + (item.desc ? "\n" + item.desc : ""), item.textColor, 13);
-                if (i < count - 1) {
-                  var arrow = shapes.addGeometricShape(getShapeType('rightArrow'), { left: curLeft + boxW + gap, top: startTop + 105, width: arrowW, height: 30 });
-                  arrow.fill.setSolidColor("#6F6F6F"); arrow.lineFormat.visible = false;
+              // 新しいスライドとしてテンプレートを挿入
+              context.presentation.insertSlidesFromBase64(b64Data);
+              await context.sync();
+              
+              // PowerPoint APIでのグループ内テキスト・色の一括再帰置換はAPIのバージョン制限や動作遅延があるため、
+              // Webアドイン版では「テンプレート（文字位置まで最適化されたもの）を挿入し、ユーザーが直接編集する」
+              // という仕様に切り替えることを推奨します。（Googleスライドのマーケティングファネルと同様の仕様）
+              log('✔ テンプレートを新しいスライドに挿入しました。文字や色は直接スライド上で編集してください。');
+
+            // ==========================================
+            // 2. それ以外の図解（直接描画 ＋ Googleスライド版のレイアウト変更を反映）
+            // ==========================================
+            } else {
+              const slide = context.presentation.getSelectedSlides().getItemAt(0);
+              const shapes = slide.shapes;
+              var startLeft = 80, startTop = 120, totalWidth = 600, totalHeight = 300;
+
+              if (state.type === 'chevron') {
+                var gap = 10, boxW = (totalWidth - (count - 1) * gap) / count;
+                for (var i = 0; i < count; i++) {
+                  var item = payloadItems[i];
+                  var shape = shapes.addGeometricShape(getShapeType('chevron'), { left: startLeft + i * (boxW + gap), top: startTop + 40, width: boxW, height: 180 });
+                  shape.fill.setSolidColor(item.hex); shape.lineFormat.visible = false; 
+                  addText(shape, item.title + (item.desc ? "\n" + item.desc : ""), item.textColor, 13);
+                }
+              } else if (state.type === 'process_arrow') {
+                var gap = 10, arrowW = 20, boxW = (totalWidth - (count - 1) * (gap * 2 + arrowW)) / count;
+                for (var i = 0; i < count; i++) {
+                  var item = payloadItems[i], curLeft = startLeft + i * (boxW + gap * 2 + arrowW);
+                  var shape = shapes.addGeometricShape(getShapeType('roundRectangle'), { left: curLeft, top: startTop + 60, width: boxW, height: 100 });
+                  shape.fill.setSolidColor(item.hex); shape.lineFormat.visible = false; addText(shape, item.title, item.textColor, 13);
+                  
+                  if (item.desc) {
+                    var descBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: curLeft - 10, top: startTop + 165, width: boxW + 20, height: 50 });
+                    descBox.fill.clear(); descBox.lineFormat.visible = false; addText(descBox, item.desc, "#6F6F6F", 11, false);
+                  }
+
+                  if (i < count - 1) {
+                    var arrow = shapes.addGeometricShape(getShapeType('rightArrow'), { left: curLeft + boxW + gap, top: startTop + 95, width: arrowW, height: 30 });
+                    arrow.fill.setSolidColor("#6F6F6F"); arrow.lineFormat.visible = false;
+                  }
+                }
+              } else if (state.type === 'standalone_arrow') {
+                var gap = 15, layerH = (totalHeight - (count - 1) * gap) / count, at = state.arrowType || 'block';
+                for (var i = 0; i < count; i++) {
+                  var item = payloadItems[i], sType = getShapeType('rightArrow'), w = totalWidth, h = layerH, t = startTop + i * (layerH + gap);
+                  if (at === 'line') { h = Math.max(8, state.arrowWeight * 4); t = t + (layerH - h) / 2; } else if (at === 'curved_up') { sType = getShapeType('curvedUpArrow'); }
+                  var shape = shapes.addGeometricShape(sType, { left: startLeft, top: t, width: w, height: h });
+                  shape.fill.setSolidColor(item.hex); shape.lineFormat.visible = false;
+                }
+              } else if (state.type === 'pyramid') {
+                var botW = 560, layerH = totalHeight / count;
+                for (var i = count - 1; i >= 0; i--) {
+                  var item = payloadItems[i], curW = botW * ((i + 1) / count), curH = totalHeight * ((i + 1) / count);
+                  var shape = shapes.addGeometricShape(getShapeType('triangle'), { left: startLeft + (totalWidth - curW) / 2, top: startTop, width: curW, height: curH });
+                  shape.fill.setSolidColor(item.hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 2;
+                  
+                  var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: startLeft, top: startTop + i * layerH, width: totalWidth, height: layerH });
+                  txtBox.fill.clear(); txtBox.lineFormat.visible = false; addText(txtBox, item.title, item.textColor, 14);
+                  
+                  if (item.desc) {
+                    var descBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: startLeft + totalWidth + 20, top: startTop + i * layerH, width: 200, height: layerH });
+                    descBox.fill.clear(); descBox.lineFormat.visible = false; addText(descBox, item.desc, "#6F6F6F", 12, false);
+                  }
+                }
+              } else if (state.type === 'matrix') {
+                var gap = 15, bw = (totalWidth - gap) / 2, bh = 140, pos = [{l:startLeft+bw+gap, t:startTop}, {l:startLeft, t:startTop}, {l:startLeft, t:startTop+bh+gap}, {l:startLeft+bw+gap, t:startTop+bh+gap}];
+                for (var i = 0; i < Math.min(count, 4); i++) {
+                  var item = payloadItems[i], p = pos[i];
+                  var shape = shapes.addGeometricShape(getShapeType('roundRectangle'), { left: p.l, top: p.t, width: bw, height: bh });
+                  shape.fill.setSolidColor(item.hex); shape.lineFormat.visible = false;
+                  
+                  var titleBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: p.l + 10, top: p.t + 10, width: bw - 20, height: 30 });
+                  titleBox.fill.clear(); titleBox.lineFormat.visible = false; addText(titleBox, item.title, item.textColor, 14, true);
+                  
+                  if (item.desc) {
+                    var descBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: p.l + 10, top: p.t + 40, width: bw - 20, height: bh - 50 });
+                    descBox.fill.clear(); descBox.lineFormat.visible = false; addText(descBox, item.desc, item.textColor, 11, false);
+                  }
+                }
+              } else if (state.type === 'venn') {
+                var r = 200, ac = Math.min(count, 3), cx = startLeft + totalWidth / 2, cy = startTop + totalHeight / 2;
+                var pos = ac >= 3 ? [ { x: cx - 50, y: cy - 35 }, { x: cx + 50, y: cy - 35 }, { x: cx, y: cy + 50 } ] : [ { x: cx - 70, y: cy }, { x: cx + 70, y: cy } ];
+                for (var i = 0; i < ac; i++) {
+                  var item = payloadItems[i];
+                  var shape = shapes.addGeometricShape(getShapeType('ellipse'), { left: pos[i].x - r/2, top: pos[i].y - r/2, width: r, height: r });
+                  shape.fill.setSolidColor(item.hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 2;
+                }
+                var overlapBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: cx - 50, top: cy - 15, width: 100, height: 30 });
+                overlapBox.fill.clear(); overlapBox.lineFormat.visible = false; addText(overlapBox, "[重なり]", "#000000", 12);
+                var txtPos = ac >= 3 ? [ { x: cx - 80, y: cy - 70 }, { x: cx + 80, y: cy - 70 }, { x: cx, y: cy + 90 } ] : [ { x: cx - 100, y: cy }, { x: cx + 100, y: cy } ];
+                for (var i = 0; i < ac; i++) {
+                  var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: txtPos[i].x - 50, top: txtPos[i].y - 15, width: 100, height: 30 });
+                  txtBox.fill.clear(); txtBox.lineFormat.visible = false; addText(txtBox, payloadItems[i].title, "#000000", 13);
+                }
+              } else if (state.type === 'comparison') {
+                var gap = 20, colW = (totalWidth - (count - 1) * gap) / count;
+                // はみ出し防止（幅が広がりすぎる場合は最大幅固定）
+                if (colW * count + gap * (count - 1) > 850) colW = (850 - gap * (count - 1)) / count;
+                for (var i = 0; i < count; i++) {
+                  var item = payloadItems[i], curLeft = startLeft + i * (colW + gap);
+                  var head = shapes.addGeometricShape(getShapeType('rectangle'), { left: curLeft, top: startTop, width: colW, height: 40 });
+                  head.fill.setSolidColor(item.hex); head.lineFormat.visible = false; addText(head, item.title, item.textColor, 13);
+                  var body = shapes.addGeometricShape(getShapeType('rectangle'), { left: curLeft, top: startTop+45, width: colW, height: totalHeight-45 });
+                  body.fill.setSolidColor("#FAFAFA"); body.lineFormat.color = item.hex; body.lineFormat.weight = 2; addText(body, item.desc, "#000000", 11, false);
+                }
+              } else if (state.type === 'cycle') {
+                var cx = startLeft + totalWidth / 2, cy = startTop + totalHeight / 2, r = 100;
+                var track = shapes.addGeometricShape(getShapeType('ellipse'), { left: cx - r, top: cy - r, width: r * 2, height: r * 2 });
+                track.fill.clear(); track.lineFormat.color = "#CBD5E1"; track.lineFormat.weight = 4;
+                for (var i = 0; i < count; i++) {
+                  var item = payloadItems[i], angle = (i * 2 * Math.PI / count) - (Math.PI / 2), nx = cx + r * Math.cos(angle), ny = cy + r * Math.sin(angle);
+                  var shape = shapes.addGeometricShape(getShapeType('ellipse'), { left: nx - 30, top: ny - 30, width: 60, height: 60 });
+                  shape.fill.setSolidColor(item.hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 2;
+                  var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: nx - 60, top: ny + 32, width: 120, height: 30 });
+                  txtBox.fill.clear(); txtBox.lineFormat.visible = false; addText(txtBox, item.title, "#000000", 12);
+                }
+              } else if (state.type === 'onion') {
+                var cx = startLeft + totalWidth / 2 - 40, cy = startTop + totalHeight / 2, maxR = Math.min(totalWidth / 2, totalHeight / 2);
+                for (var i = count - 1; i >= 0; i--) {
+                  var item = payloadItems[i], cr = (maxR / count) * (i + 1);
+                  var shape = shapes.addGeometricShape(getShapeType('ellipse'), { left: cx - cr, top: cy - cr, width: cr * 2, height: cr * 2 });
+                  shape.fill.setSolidColor(item.hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 2;
+                  var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: cx - cr, top: cy - cr + 5, width: cr * 2, height: 25 });
+                  txtBox.fill.clear(); txtBox.lineFormat.visible = false; addText(txtBox, item.title, item.textColor, 12);
+                  
+                  if (item.desc) {
+                    var descBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: cx + maxR + 20, top: cy - cr + (cr*2)/count, width: 200, height: 30 });
+                    descBox.fill.clear(); descBox.lineFormat.visible = false; addText(descBox, item.desc, "#6F6F6F", 11, false);
+                  }
+                }
+              } else if (state.type === 'timeline') {
+                var lineY = startTop + totalHeight / 2;
+                var line = shapes.addGeometricShape(getShapeType('rightArrow'), { left: startLeft, top: lineY - 8, width: totalWidth, height: 16 });
+                line.fill.setSolidColor("#CBD5E1"); line.lineFormat.visible = false;
+                var stepW = totalWidth / (count + 0.5);
+                for (var i = 0; i < count; i++) {
+                  var item = payloadItems[i], x = startLeft + 35 + i * stepW, isTop = (i % 2 === 0), stemH = 45, stemY = isTop ? lineY - stemH : lineY;
+                  var stem = shapes.addGeometricShape(getShapeType('rectangle'), { left: x - 1, top: stemY, width: 2, height: stemH });
+                  stem.fill.setSolidColor("#94A3B8"); stem.lineFormat.visible = false;
+                  var dot = shapes.addGeometricShape(getShapeType('ellipse'), { left: x - 10, top: lineY - 10, width: 20, height: 20 });
+                  dot.fill.setSolidColor(item.hex); dot.lineFormat.color = "#FFFFFF"; dot.lineFormat.weight = 2;
+                  
+                  var boxY = isTop ? lineY - stemH - 60 : lineY + stemH;
+                  var titleBox = shapes.addGeometricShape(getShapeType('roundRectangle'), { left: x - 55, top: boxY, width: 110, height: 30 });
+                  titleBox.fill.clear(); titleBox.lineFormat.visible = false; addText(titleBox, item.title, "#000000", 12, true);
+                  
+                  if (item.desc) {
+                    var descBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: x - 65, top: boxY + 25, width: 130, height: 40 });
+                    descBox.fill.clear(); descBox.lineFormat.visible = false; addText(descBox, item.desc, "#6F6F6F", 10, false);
+                  }
                 }
               }
-            } else if (state.type === 'standalone_arrow') {
-              var gap = 15, layerH = (totalHeight - (count - 1) * gap) / count, at = state.arrowType || 'block';
-              for (var i = 0; i < count; i++) {
-                var item = payloadItems[i], sType = getShapeType('rightArrow'), w = totalWidth, h = layerH, t = startTop + i * (layerH + gap);
-                if (at === 'line') { h = Math.max(8, state.arrowWeight * 4); t = t + (layerH - h) / 2; } else if (at === 'curved_up') { sType = getShapeType('curvedUpArrow'); }
-                var shape = shapes.addGeometricShape(sType, { left: startLeft, top: t, width: w, height: h });
-                shape.fill.setSolidColor(item.hex); shape.lineFormat.visible = false;
-                var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: startLeft, top: startTop + i * (layerH + gap), width: w, height: layerH });
-                txtBox.fill.clear(); txtBox.lineFormat.visible = false; addText(txtBox, item.title + (item.desc ? " - " + item.desc : ""), (at === 'line') ? '#000000' : item.textColor, 14);
-              }
-            } else if (state.type === 'pyramid') {
-              var botW = 560, layerH = totalHeight / count;
-              for (var i = count - 1; i >= 0; i--) {
-                var item = payloadItems[i], curW = botW * ((i + 1) / count), curH = totalHeight * ((i + 1) / count);
-                var shape = shapes.addGeometricShape(getShapeType('triangle'), { left: startLeft + (totalWidth - curW) / 2, top: startTop, width: curW, height: curH });
-                shape.fill.setSolidColor(item.hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 2;
-                var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: startLeft, top: startTop + i * layerH, width: totalWidth, height: layerH });
-                txtBox.fill.clear(); txtBox.lineFormat.visible = false; addText(txtBox, item.title, item.textColor, 14);
-              }
-            } else if (state.type === 'matrix') {
-              var gap = 15, bw = (totalWidth - gap) / 2, bh = 140, pos = [{l:startLeft+bw+gap, t:startTop}, {l:startLeft, t:startTop}, {l:startLeft, t:startTop+bh+gap}, {l:startLeft+bw+gap, t:startTop+bh+gap}];
-              for (var i = 0; i < Math.min(count, 4); i++) {
-                var item = payloadItems[i], p = pos[i];
-                var shape = shapes.addGeometricShape(getShapeType('roundRectangle'), { left: p.l, top: p.t, width: bw, height: bh });
-                shape.fill.setSolidColor(item.hex); shape.lineFormat.visible = false; addText(shape, item.title + (item.desc ? "\n" + item.desc : ""), item.textColor, 13);
-              }
-            } else if (state.type === 'venn') {
-              var r = 200, ac = Math.min(count, 3), cx = startLeft + totalWidth / 2, cy = startTop + totalHeight / 2;
-              var pos = ac >= 3 ? [ { x: cx - 50, y: cy - 35 }, { x: cx + 50, y: cy - 35 }, { x: cx, y: cy + 50 } ] : [ { x: cx - 70, y: cy }, { x: cx + 70, y: cy } ];
-              for (var i = 0; i < ac; i++) {
-                var item = payloadItems[i];
-                var shape = shapes.addGeometricShape(getShapeType('ellipse'), { left: pos[i].x - r/2, top: pos[i].y - r/2, width: r, height: r });
-                shape.fill.setSolidColor(item.hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 2;
-              }
-              var overlapBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: cx - 50, top: cy - 15, width: 100, height: 30 });
-              overlapBox.fill.clear(); overlapBox.lineFormat.visible = false; addText(overlapBox, "[重なり]", "#000000", 12);
-              var txtPos = ac >= 3 ? [ { x: cx - 80, y: cy - 70 }, { x: cx + 80, y: cy - 70 }, { x: cx, y: cy + 90 } ] : [ { x: cx - 100, y: cy }, { x: cx + 100, y: cy } ];
-              for (var i = 0; i < ac; i++) {
-                var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: txtPos[i].x - 50, top: txtPos[i].y - 15, width: 100, height: 30 });
-                txtBox.fill.clear(); txtBox.lineFormat.visible = false; addText(txtBox, payloadItems[i].title, "#000000", 13);
-              }
-            } else if (state.type === 'comparison') {
-              var gap = 20, colW = (totalWidth - (count - 1) * gap) / count;
-              for (var i = 0; i < count; i++) {
-                var item = payloadItems[i], curLeft = startLeft + i * (colW + gap);
-                var head = shapes.addGeometricShape(getShapeType('rectangle'), { left: curLeft, top: startTop, width: colW, height: 40 });
-                head.fill.setSolidColor(item.hex); head.lineFormat.visible = false; addText(head, item.title, item.textColor, 13);
-                var body = shapes.addGeometricShape(getShapeType('rectangle'), { left: curLeft, top: startTop+45, width: colW, height: totalHeight-45 });
-                body.fill.setSolidColor("#FAFAFA"); body.lineFormat.color = item.hex; body.lineFormat.weight = 2; addText(body, item.desc, "#000000", 12);
-              }
-            } else if (state.type === 'cycle') {
-              var cx = startLeft + totalWidth / 2, cy = startTop + totalHeight / 2, r = 100;
-              var track = shapes.addGeometricShape(getShapeType('ellipse'), { left: cx - r, top: cy - r, width: r * 2, height: r * 2 });
-              track.fill.clear(); track.lineFormat.color = "#CBD5E1"; track.lineFormat.weight = 4;
-              for (var i = 0; i < count; i++) {
-                var item = payloadItems[i], angle = (i * 2 * Math.PI / count) - (Math.PI / 2), nx = cx + r * Math.cos(angle), ny = cy + r * Math.sin(angle);
-                var shape = shapes.addGeometricShape(getShapeType('ellipse'), { left: nx - 30, top: ny - 30, width: 60, height: 60 });
-                shape.fill.setSolidColor(item.hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 2;
-                var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: nx - 60, top: ny + 32, width: 120, height: 30 });
-                txtBox.fill.clear(); txtBox.lineFormat.visible = false; addText(txtBox, item.title, "#000000", 12);
-              }
-            } else if (state.type === 'onion') {
-              var cx = startLeft + totalWidth / 2 - 40, cy = startTop + totalHeight / 2, maxR = Math.min(totalWidth / 2, totalHeight / 2);
-              for (var i = count - 1; i >= 0; i--) {
-                var item = payloadItems[i], cr = (maxR / count) * (i + 1);
-                var shape = shapes.addGeometricShape(getShapeType('ellipse'), { left: cx - cr, top: cy - cr, width: cr * 2, height: cr * 2 });
-                shape.fill.setSolidColor(item.hex); shape.lineFormat.color = "#FFFFFF"; shape.lineFormat.weight = 2;
-                var txtBox = shapes.addGeometricShape(getShapeType('rectangle'), { left: cx - cr, top: cy - cr + 5, width: cr * 2, height: 25 });
-                txtBox.fill.clear(); txtBox.lineFormat.visible = false; addText(txtBox, item.title, item.textColor, 12);
-              }
-            } else if (state.type === 'timeline') {
-              var lineY = startTop + totalHeight / 2;
-              var line = shapes.addGeometricShape(getShapeType('rightArrow'), { left: startLeft, top: lineY - 8, width: totalWidth, height: 16 });
-              line.fill.setSolidColor("#CBD5E1"); line.lineFormat.visible = false;
-              var stepW = totalWidth / (count + 0.5);
-              for (var i = 0; i < count; i++) {
-                var item = payloadItems[i], x = startLeft + 35 + i * stepW, isTop = (i % 2 === 0), stemH = 45, stemY = isTop ? lineY - stemH : lineY;
-                var stem = shapes.addGeometricShape(getShapeType('rectangle'), { left: x - 1, top: stemY, width: 2, height: stemH });
-                stem.fill.setSolidColor("#94A3B8"); stem.lineFormat.visible = false;
-                var dot = shapes.addGeometricShape(getShapeType('ellipse'), { left: x - 10, top: lineY - 10, width: 20, height: 20 });
-                dot.fill.setSolidColor(item.hex); dot.lineFormat.color = "#FFFFFF"; dot.lineFormat.weight = 2;
-                var boxY = isTop ? lineY - stemH - 40 : lineY + stemH;
-                var box = shapes.addGeometricShape(getShapeType('roundRectangle'), { left: x - 55, top: boxY, width: 110, height: 40 });
-                box.fill.clear(); box.lineFormat.visible = false; addText(box, item.title, "#000000", 12);
-              }
-            }
 
-            await context.sync();
+              await context.sync();
+              log('✔ 挿入完了！図形を選択し「Cmd + E / Ctrl + E」でテキストを中央揃えにしてください。');
+            }
           });
-          log('✔ 挿入完了！図形を選択し「Cmd + E」でテキストを中央揃えにしてください。');
         } else {
           log('PowerPoint環境外です。', true);
         }
